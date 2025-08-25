@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SessionProviderWrapper } from './components/SessionProviderWrapper';
+import SessionNotificationWrapper from '../app/components/SessionNotificationWrapper';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -24,18 +26,21 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+
+export const dynamic = 'force-static';
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+    <html>
+      <body>
+        <SessionProviderWrapper>
+          <SessionNotificationWrapper>
+            {children}
+          </SessionNotificationWrapper>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
 }
+
+
