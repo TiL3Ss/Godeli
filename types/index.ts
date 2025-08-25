@@ -1,71 +1,56 @@
 // types/index.ts
-export interface Usuario {
-  id: number;
-  username: string;
-  tipo: 'tienda' | 'repartidor';
-  nombre: string;
-  created_at: string;
-}
 
-export interface Tienda {
-  id: number;
-  usuario_id: number;
-  nombre: string;
-  direccion?: string;
+export interface AuthUser {
+  id: string;
+  username: string;
+  email: string;
+  role: 'tienda' | 'repartidor' | 'admin';
+  nombre?: string;
   telefono?: string;
-  created_at: string;
+  tienda_id?: number;
+  tienda?: {
+    id: number;
+    nombre: string;
+    direccion: string;
+    telefono: string;
+  };
 }
 
 export interface Producto {
   id: number;
-  tienda_id: number;
   nombre: string;
-  precio: number;
   descripcion?: string;
-  activo: boolean;
-  created_at: string;
+  precio: number;
+  activo?: boolean;
+  tienda_id?: number;
+  created_at?: string;
+}
+
+export interface ProductoComanda {
+  id: number;
+  cantidad: number;
+  precio_unitario: number;
+  producto: Producto;
 }
 
 export interface Comanda {
   id: number;
-  tienda_id: number;
-  repartidor_id?: number;
   cliente_nombre: string;
-  cliente_telefono?: string;
+  cliente_telefono: string;
   cliente_direccion: string;
-  estado: 'activa' | 'en_proceso' | 'completada' | 'cancelada';
   total: number;
+  estado: 'activa' | 'en_proceso' | 'completada' | 'cancelada';
   comentario_problema?: string;
   created_at: string;
   updated_at: string;
-  tienda?: Tienda;
-  repartidor?: Usuario;
-  productos?: ComandaProducto[];
-}
-
-export interface ComandaProducto {
-  id: number;
-  comanda_id: number;
-  producto_id: number;
-  cantidad: number;
-  precio_unitario: number;
-  subtotal: number;
-  producto?: Producto;
-}
-
-export interface RepartidorTienda {
-  id: number;
-  repartidor_id: number;
   tienda_id: number;
-  tienda?: Tienda;
-}
-
-export interface AuthUser {
-  id: number;
-  username: string;
-  tipo: 'tienda' | 'repartidor';
-  nombre: string;
-  tienda?: Tienda;
+  repartidor_id?: number;
+  repartidor?: {
+    id: number;
+    nombre: string;
+    telefono: string;
+  };
+  productos?: ProductoComanda[];
 }
 
 export interface ComandaFormData {
@@ -83,3 +68,54 @@ export interface FiltrosHistorial {
   fecha?: string;
   productos?: number[];
 }
+
+export interface Tienda {
+  id: number;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  activa?: boolean;
+  created_at?: string;
+}
+
+export interface Repartidor {
+  id: number;
+  nombre: string;
+  telefono: string;
+  email: string;
+  activo?: boolean;
+}
+
+// Tipos para las respuestas de las APIs
+export interface ApiResponse<T = any> {
+  success?: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface LoginResponse {
+  success: boolean;
+  user?: AuthUser;
+  token?: string;
+  message?: string;
+}
+
+// Estados posibles de las comandas
+export const ESTADOS_COMANDA = {
+  ACTIVA: 'activa',
+  EN_PROCESO: 'en_proceso', 
+  COMPLETADA: 'completada',
+  CANCELADA: 'cancelada'
+} as const;
+
+export type EstadoComanda = typeof ESTADOS_COMANDA[keyof typeof ESTADOS_COMANDA];
+
+// Roles de usuario
+export const ROLES_USUARIO = {
+  TIENDA: 'tienda',
+  REPARTIDOR: 'repartidor',
+  ADMIN: 'admin'
+} as const;
+
+export type RolUsuario = typeof ROLES_USUARIO[keyof typeof ROLES_USUARIO];

@@ -2,7 +2,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Producto, ComandaFormData } from '../../types';
+
+interface Producto {
+  id: number;
+  nombre: string;
+  descripcion?: string;
+  precio: number;
+}
+
+interface ComandaFormData {
+  cliente_nombre: string;
+  cliente_telefono: string;
+  cliente_direccion: string;
+  productos: Array<{
+    producto_id: number;
+    cantidad: number;
+  }>;
+}
 
 interface AgregarComandaModalProps {
   tiendaId: number;
@@ -26,6 +42,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
   });
   const [loading, setLoading] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadProductos();
@@ -33,10 +50,16 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
 
   const loadProductos = async () => {
     try {
-      const productosData = await getProductosTienda(tiendaId);
-      setProductos(productosData);
+      const response = await fetch(`/api/productos?tienda_id=${tiendaId}`);
+      if (response.ok) {
+        const productosData = await response.json();
+        setProductos(productosData);
+      } else {
+        setError('Error al cargar productos');
+      }
     } catch (error) {
       console.error('Error al cargar productos:', error);
+      setError('Error al cargar productos');
     } finally {
       setLoadingProductos(false);
     }
@@ -90,26 +113,49 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (productosSeleccionados.length === 0) {
-      alert('Debe seleccionar al menos un producto');
+      setError('Debe seleccionar al menos un producto');
+      return;
+    }
+
+    if (!formData.cliente_nombre.trim() || !formData.cliente_direccion.trim()) {
+      setError('Nombre del cliente y dirección son requeridos');
       return;
     }
 
     setLoading(true);
+    setError('');
+    
     try {
-      const comandaData: ComandaFormData = {
-        ...formData,
+      const comandaData = {
+        tienda_id: tiendaId,
+        cliente_nombre: formData.cliente_nombre.trim(),
+        cliente_telefono: formData.cliente_telefono.trim(),
+        cliente_direccion: formData.cliente_direccion.trim(),
         productos: productosSeleccionados.map(p => ({
           producto_id: p.producto_id,
           cantidad: p.cantidad
         }))
       };
 
-      await crearComanda(tiendaId, comandaData);
-      onComandaCreated();
+      const response = await fetch('/api/comandas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(comandaData),
+      });
+
+      if (response.ok) {
+        onComandaCreated();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Error al crear la comanda');
+      }
     } catch (error) {
       console.error('Error al crear comanda:', error);
-      alert('Error al crear la comanda');
+      setError('Error al crear la comanda');
     } finally {
       setLoading(false);
     }
@@ -130,6 +176,12 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
           </button>
         </div>
 
+        {error && (
+          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="p-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Información del cliente */}
@@ -146,6 +198,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   value={formData.cliente_nombre}
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={loading}
                 />
               </div>
 
@@ -158,6 +211,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   value={formData.cliente_telefono}
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={loading}
                 />
               </div>
 
@@ -171,6 +225,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   value={formData.cliente_direccion}
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_direccion: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  disabled={loading}
                 />
               </div>
 
@@ -190,6 +245,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                               type="button"
                               onClick={() => eliminarProducto(item.producto_id)}
                               className="ml-2 text-red-600 hover:text-red-800"
+                              disabled={loading}
                             >
                               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -249,7 +305,8 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                               <button
                                 type="button"
                                 onClick={() => actualizarCantidad(producto.id, productoSeleccionado.cantidad - 1)}
-                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50"
+                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                disabled={loading}
                               >
                                 -
                               </button>
@@ -257,7 +314,8 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                               <button
                                 type="button"
                                 onClick={() => actualizarCantidad(producto.id, productoSeleccionado.cantidad + 1)}
-                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50"
+                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                                disabled={loading}
                               >
                                 +
                               </button>
@@ -266,7 +324,8 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                             <button
                               type="button"
                               onClick={() => agregarProducto(producto)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200"
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 disabled:opacity-50"
+                              disabled={loading}
                             >
                               Agregar
                             </button>
@@ -285,6 +344,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              disabled={loading}
             >
               Cancelar
             </button>
@@ -293,7 +353,17 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
               disabled={loading || productosSeleccionados.length === 0}
               className="flex-1 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creando...' : 'Crear Comanda'}
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creando...
+                </>
+              ) : (
+                'Crear Comanda'
+              )}
             </button>
           </div>
         </form>
