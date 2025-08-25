@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getProductosTienda, crearComanda } from '../../lib/db';
 import { Producto, ComandaFormData } from '../../types';
 
 interface AgregarComandaModalProps {

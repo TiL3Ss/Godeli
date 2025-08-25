@@ -53,30 +53,47 @@ export default function LoginPage() {
     }
 
     try {
+      console.log('Intentando login con:', identifier.trim());
+      
       const result = await signIn('credentials', {
         identifier: identifier.trim(),
         password: password,
         redirect: false,
       });
 
+      console.log('Resultado del signIn:', result);
+
       if (result?.error) {
-        setError(result.error === 'CredentialsSignin' 
-          ? 'Usuario/email o contraseña incorrectos' 
-          : result.error
-        );
-      } else if (result?.ok) {
-        // Login exitoso, obtener la sesión actualizada
-        const session = await getSession();
-        if (session?.user) {
-          // El hook useAuth se actualizará automáticamente y redirigirá
-          // No necesitamos hacer la redirección manualmente aquí
+        console.error('Error en signIn:', result.error);
+        
+        // Mapear errores específicos
+        switch (result.error) {
+          case 'CredentialsSignin':
+            setError('Usuario/email o contraseña incorrectos');
+            break;
+          case 'AccessDenied':
+            setError('Acceso denegado');
+            break;
+          case 'Verification':
+            setError('Error de verificación');
+            break;
+          default:
+            setError('Error al iniciar sesión. Inténtalo de nuevo.');
         }
+      } else if (result?.ok) {
+        console.log('Login exitoso');
+        // El hook useAuth se actualizará automáticamente
+        // Dar tiempo para que se actualice la sesión
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
+        console.error('Resultado inesperado:', result);
         setError('Error inesperado al iniciar sesión');
       }
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión');
-      console.error('Login error:', err);
+      console.error('Excepción durante login:', err);
+      setError('Error de conexión. Verifica tu conexión a internet.');
     } finally {
       setLoading(false);
     }
