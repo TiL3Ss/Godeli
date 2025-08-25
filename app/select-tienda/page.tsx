@@ -3,35 +3,35 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthUser, Tienda } from '../../types';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function SelectTiendaPage() {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [tiendas, setTiendas] = useState<Tienda[]>([]);
+  const [tiendas, setTiendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTienda, setSelectedTienda] = useState<number | null>(null);
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    const authUser = getAuthUser();
-    if (!authUser) {
-      router.push('/login');
+    if (status === 'unauthenticated') {
+      router.push('/');
       return;
     }
 
-    setUser(authUser);
-    
-    if (authUser.role === 'tienda' && authUser.tienda_id) {
-      // Para tiendas, cargar su tienda específica
-      loadTiendaByUser(authUser.tienda_id);
-    } else if (authUser.role === 'repartidor') {
-      // Para repartidores, cargar las tiendas disponibles
-      loadTiendasRepartidor(authUser.id);
-    } else if (authUser.role === 'admin') {
-      // Para admin, cargar todas las tiendas
-      loadAllTiendas();
+    if (status === 'authenticated' && session?.user) {
+      const authUser = getAuthUser();
+      if (!authUser) return;
+
+      if (authUser.tipo === 'tienda' && authUser.tienda) {
+        // Para tiendas, usar directamente los datos de la tienda
+        setSelectedTienda(authUser.tienda.id);
+        setLoading(false);
+      } else if (authUser.tipo === 'repartidor') {
+        // Para repartidores, cargar las tiendas disponibles
+        loadTiendasRepartidor(authUser.id);
+      }
     }
-  }, [router]);
+  }, [status, session, router]);
 
   const loadTiendaByUser = async (tiendaId: number) => {
     try {
@@ -96,20 +96,24 @@ export default function SelectTiendaPage() {
   };
 
   // Función auxiliar para obtener el usuario autenticado
-  const getAuthUser = (): AuthUser | null => {
-    try {
-      const userStr = localStorage.getItem('auth_user');
-      return userStr ? JSON.parse(userStr) : null;
-    } catch {
-      return null;
+  const getAuthUser = () => {
+    // Con NextAuth, obtenemos los datos directamente de la sesión
+    if (session?.user) {
+      return {
+        id: session.user.id,
+        username: session.user.username,
+        nombre: session.user.name,
+        tipo: session.user.tipo,
+        tienda_id: session.user.tienda_id,
+        tienda: session.user.tienda
+      };
     }
+    return null;
   };
 
-  // Función auxiliar para limpiar el usuario autenticado
+  // Función auxiliar para cerrar sesión
   const clearAuthUser = () => {
-    localStorage.removeItem('auth_user');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('selected_tienda_id');
+    signOut({ callbackUrl: '/' });
   };
 
   if (loading) {

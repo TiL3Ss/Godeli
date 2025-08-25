@@ -1,43 +1,48 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { getTursoClient } from '../../../lib/turso';
+import { createClient } from '@libsql/client';
 import bcrypt from 'bcryptjs';
 import { DefaultSession } from 'next-auth';
 
+// Cliente de Turso
+const tursoClient = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
+
 // Constantes para mejor legibilidad
-const SESSION_MAX_AGE = 60 * 60 * 3; 
-const SESSION_UPDATE_AGE = 30 * 60; 
-const JWT_EXPIRATION = 3 * 60 * 60 * 1000; 
+const SESSION_MAX_AGE = 60 * 60 * 3; // 3 horas
+const SESSION_UPDATE_AGE = 30 * 60; // 30 minutos
+const JWT_EXPIRATION = 3 * 60 * 60 * 1000; // 3 horas en milisegundos
 
 export const authOptions = { 
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        identifier: { label: 'Username or Email', type: 'text' },
+        identifier: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials: Record<"identifier" | "password", string> | undefined) {
+        if (!credentials?.identifier || !credentials?.password) {
+          console.log('Faltan credenciales');
+          return null;
+        }
+
         try {
-          // Validar que las credenciales existen
-          if (!credentials?.identifier || !credentials?.password) {
-            console.log('Credenciales faltantes');
-            return null;
-          }
-
-          const normalizedIdentifier = credentials.identifier.toLowerCase().trim();
-          console.log('Intentando autenticar:', normalizedIdentifier);
-
-          const client = getTursoClient();
+          const normalizedIdentifier = credentials.identifier.toLowerCase();
+          console.log('Buscando usuario:', normalizedIdentifier);
           
-          // Consulta mejorada con manejo de errores
-          const result = await client.execute({
-            sql: 'SELECT id, username, email, password, role FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?',
-            args: [normalizedIdentifier, normalizedIdentifier]
+          // Consulta para tu esquema específico
+          const result = await tursoClient.execute({
+            sql: `SELECT u.id, u.username, u.password, u.tipo, u.nombre,
+                         t.id as tienda_id, t.nombre as tienda_nombre, t.direccion, t.telefono
+                  FROM usuarios u
+                  LEFT JOIN tiendas t ON u.id = t.usuario_id
+                  WHERE LOWER(u.username) = ?`,
+            args: [normalizedIdentifier]
           });
-
-          console.log('Resultado de la consulta:', result.rows.length, 'filas encontradas');
 
           if (result.rows.length === 0) {
             console.log('Usuario no encontrado');
@@ -45,29 +50,42 @@ export const authOptions = {
           }
 
           const user = result.rows[0];
-          console.log('Usuario encontrado:', user.username);
+          console.log('Usuario encontrado:', user.username, 'tipo:', user.tipo);
 
-          // Verificar contraseña
-          const passwordMatch = await bcrypt.compare(credentials.password, user.password as string);
-          
+          // Para este ejemplo, asumiendo que las contraseñas están en texto plano
+          // En producción deberías usar bcrypt
+          const passwordMatch = credentials.password === user.password;
+          // const passwordMatch = await bcrypt.compare(credentials.password, user.password as string);
+
           if (!passwordMatch) {
             console.log('Contraseña incorrecta');
             return null;
           }
 
-          console.log('Autenticación exitosa');
-          
-          // Retornar usuario autenticado
-          return {
+          console.log('Autenticación exitosa para:', user.username);
+
+          // Retornar todos los datos necesarios
+          const userData = {
             id: user.id.toString(),
-            name: user.username as string,
-            email: user.email as string,
-            role: user.role as string,
+            name: user.nombre as string,
+            username: user.username as string,
+            tipo: user.tipo as string, // 'tienda' o 'repartidor'
+            tienda_id: user.tienda_id ? Number(user.tienda_id) : null,
           };
 
+          // Si es una tienda, agregar datos de la tienda
+          if (user.tipo === 'tienda' && user.tienda_id) {
+            userData['tienda'] = {
+              id: Number(user.tienda_id),
+              nombre: user.tienda_nombre as string,
+              direccion: user.direccion as string,
+              telefono: user.telefono as string,
+            };
+          }
+
+          return userData;
         } catch (error) {
-          console.error('Error en authorize:', error);
-          // Es importante NO lanzar el error aquí, sino retornar null
+          console.error('Error en autorización:', error);
           return null;
         }
       },
@@ -75,55 +93,49 @@ export const authOptions = {
   ],
   callbacks: {
     async jwt({ token, user, trigger }: { token: any; user?: any; trigger?: string }) {
-      try {
-        // Si es un nuevo login
-        if (user) {
-          token.id = user.id;
-          token.name = user.name;
-          token.email = user.email;
-          token.role = user.role;
-          token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
-          console.log('JWT: Nuevo login para usuario:', user.name);
-        }
-        
-        // Si es una actualización manual
-        if (trigger === 'update') {
-          console.log('JWT: Extendiendo sesión por update()');
-          token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
-          return token;
-        }
-        
-        // Verificar si el token está próximo a expirar
-        if (token.accessTokenExpires && Date.now() > (token.accessTokenExpires - (30 * 60 * 1000))) {
-          console.log('JWT: Token próximo a expirar, refrescando...');
-          token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
-        }
-        
-        return token;
-      } catch (error) {
-        console.error('Error en JWT callback:', error);
+      // Si es un nuevo login
+      if (user) {
+        token.id = user.id;
+        token.name = user.name;
+        token.username = user.username;
+        token.tipo = user.tipo;
+        token.tienda_id = user.tienda_id;
+        token.tienda = user.tienda;
+        token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
+        console.log('JWT: Nuevo login para usuario:', user.username, 'tipo:', user.tipo);
+      }
+      
+      // Si es una actualización manual
+      if (trigger === 'update') {
+        console.log('JWT: Extendiendo sesión por update()');
+        token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
         return token;
       }
+      
+      // Verificar si el token está próximo a expirar
+      if (token.accessTokenExpires && Date.now() > (token.accessTokenExpires - (30 * 60 * 1000))) {
+        console.log('JWT: Token próximo a expirar, refrescando...');
+        token.accessTokenExpires = Date.now() + JWT_EXPIRATION;
+      }
+      
+      return token;
     },
     
     async session({ session, token }: { session: any; token: any }) {
-      try {
-        if (token && session.user) {
-          session.user.id = token.id as string;
-          session.user.name = token.name as string;
-          session.user.email = token.email as string;
-          session.user.role = token.role as string;
-          session.accessTokenExpires = token.accessTokenExpires;
-          
-          if (token.accessTokenExpires) {
-            session.expires = new Date(token.accessTokenExpires).toISOString();
-          }
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.name = token.name as string;
+        session.user.username = token.username as string;
+        session.user.tipo = token.tipo as string;
+        session.user.tienda_id = token.tienda_id as number;
+        session.user.tienda = token.tienda;
+        session.accessTokenExpires = token.accessTokenExpires;
+        
+        if (token.accessTokenExpires) {
+          session.expires = new Date(token.accessTokenExpires).toISOString();
         }
-        return session;
-      } catch (error) {
-        console.error('Error en session callback:', error);
-        return session;
       }
+      return session;
     },
   },
   session: {
@@ -136,19 +148,15 @@ export const authOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: '/', 
-    error: '/', // Redirigir errores al login
+    signIn: '/',
+    error: '/', 
   },
   events: {
-    async session({ session, token }) {
-      console.log('Session event - Usuario:', session?.user?.name);
-    },
-    async signIn({ user, account, profile }) {
-      console.log('SignIn event - Usuario:', user?.name);
-      return true;
+    async session({ session }) {
+      console.log('Session event - Usuario:', session?.user?.username, 'tipo:', session?.user?.tipo);
     },
   },
-  debug: process.env.NODE_ENV === 'development', // Habilitar debug en desarrollo
+  debug: process.env.NODE_ENV === 'development',
 };
 
 const handler = NextAuth(authOptions);
@@ -161,8 +169,15 @@ declare module 'next-auth' {
     user: {
       id: string;
       name: string;
-      email: string;
-      role: string;
+      username: string;
+      tipo: string;
+      tienda_id?: number;
+      tienda?: {
+        id: number;
+        nombre: string;
+        direccion: string;
+        telefono: string;
+      };
     } & DefaultSession['user'];
     accessTokenExpires?: number;
   }
@@ -170,8 +185,15 @@ declare module 'next-auth' {
   interface User {
     id: string;
     name: string;
-    email: string;
-    role: string;
+    username: string;
+    tipo: string;
+    tienda_id?: number;
+    tienda?: {
+      id: number;
+      nombre: string;
+      direccion: string;
+      telefono: string;
+    };
   }
 }
 
@@ -179,8 +201,15 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id: string;
     name: string;
-    email: string;
-    role: string;
+    username: string;
+    tipo: string;
+    tienda_id?: number;
+    tienda?: {
+      id: number;
+      nombre: string;
+      direccion: string;
+      telefono: string;
+    };
     accessTokenExpires?: number;
   }
 }

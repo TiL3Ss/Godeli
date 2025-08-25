@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,22 +15,19 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Redirigir si ya está autenticado
-    if (status === 'authenticated' && session?.user) {
-      redirectBasedOnRole(session.user.role);
+    if (status === 'authenticated' && session?.user?.tipo) {
+      redirectBasedOnTipo(session.user.tipo);
     }
   }, [status, session, router]);
 
-  // Redirigir según el rol del usuario
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
+  // Redirigir según el tipo de usuario
+  const redirectBasedOnTipo = (tipo: string) => {
+    switch (tipo) {
       case 'tienda':
-        router.push('/dashboard/tienda');
+        router.push('/select-tienda');
         break;
       case 'repartidor':
-        router.push('/dashboard/repartidor');
-        break;
-      case 'admin':
-        router.push('/dashboard/admin');
+        router.push('/select-tienda');
         break;
       default:
         router.push('/select-tienda');
@@ -42,18 +39,17 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    // Validaciones básicas
-    if (!identifier.trim() || !password.trim()) {
-      setError('Por favor ingresa usuario/email y contraseña');
+    if (!username.trim() || !password.trim()) {
+      setError('Por favor ingresa usuario y contraseña');
       setLoading(false);
       return;
     }
 
     try {
-      console.log('Intentando login con:', identifier.trim());
+      console.log('Intentando login con:', username.trim());
       
       const result = await signIn('credentials', {
-        identifier: identifier.trim(),
+        identifier: username.trim(),
         password: password,
         redirect: false,
       });
@@ -63,10 +59,9 @@ export default function LoginPage() {
       if (result?.error) {
         console.error('Error en signIn:', result.error);
         
-        // Mapear errores específicos
         switch (result.error) {
           case 'CredentialsSignin':
-            setError('Usuario/email o contraseña incorrectos');
+            setError('Usuario o contraseña incorrectos');
             break;
           case 'AccessDenied':
             setError('Acceso denegado');
@@ -78,11 +73,9 @@ export default function LoginPage() {
             setError('Error al iniciar sesión. Inténtalo de nuevo.');
         }
       } else if (result?.ok) {
-        console.log('Login exitoso');
-        // NextAuth se encargará automáticamente de actualizar la sesión
-        // No necesitamos hacer reload manual
+        console.log('Login exitoso, esperando redirección...');
+        // NextAuth actualizará automáticamente la sesión
       } else {
-        console.error('Resultado inesperado:', result);
         setError('Error inesperado al iniciar sesión');
       }
     } catch (err: any) {
@@ -127,29 +120,29 @@ export default function LoginPage() {
             </svg>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sistema de Pedidos
+            Sistema de Comandas
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Ingresa tus credenciales para continuar
+            Ingresa tu usuario y contraseña
           </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="identifier" className="sr-only">
-                Usuario o Email
+              <label htmlFor="username" className="sr-only">
+                Usuario
               </label>
               <input
-                id="identifier"
-                name="identifier"
+                id="username"
+                name="username"
                 type="text"
                 required
                 autoComplete="username"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Usuario o Email"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="Usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={loading}
               />
             </div>
@@ -213,8 +206,8 @@ export default function LoginPage() {
             <div className="text-sm text-gray-600">
               <p className="mb-2">Usuarios de prueba:</p>
               <div className="space-y-1 text-xs">
-                <p><span className="font-semibold">Tienda:</span> tienda1@example.com / password123</p>
-                <p><span className="font-semibold">Repartidor:</span> repartidor1@example.com / password123</p>
+                <p><span className="font-semibold">Tienda:</span> tienda1 / password123</p>
+                <p><span className="font-semibold">Repartidor:</span> repartidor1 / password123</p>
               </div>
             </div>
           </div>
