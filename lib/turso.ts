@@ -5,19 +5,13 @@ let client: ReturnType<typeof createClient> | null = null;
 
 export function getTursoClient() {
   if (!client) {
-    const dbUrl = process.env.TURSO_DATABASE_URL;
-    const authToken = process.env.TURSO_AUTH_TOKEN;
-    
-    console.log('DB URL exists:', !!dbUrl);
-    console.log('Auth Token exists:', !!authToken);
-    
-    if (!dbUrl || !authToken) {
-      throw new Error(`Missing Turso environment variables. DB URL: ${!!dbUrl}, Token: ${!!authToken}`);
+    if (!process.env.TURSO_DATABASE_URL || !process.env.TURSO_AUTH_TOKEN) {
+      throw new Error('Missing Turso environment variables');
     }
     
     client = createClient({
-      url: dbUrl,
-      authToken: authToken,
+      url: process.env.TURSO_DATABASE_URL,
+      authToken: process.env.TURSO_AUTH_TOKEN,
     });
   }
   
