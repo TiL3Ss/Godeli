@@ -38,7 +38,7 @@ export default function SelectTiendaPage() {
     }
   }, [status, session, router]);
 
-  // Reloj en tiempo real UTC-3
+  // Reloj en tiempo  UTC-3
   useEffect(() => {
   const timer = setInterval(() => {
     setCurrentTime(new Date());
@@ -152,7 +152,7 @@ export default function SelectTiendaPage() {
             
             <button
               onClick={handleLogout}
-              className="group flex cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+              className="group flex cursor-pointeritems-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
             >
               <svg className="w-4 h-4 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -195,8 +195,6 @@ export default function SelectTiendaPage() {
 
               {/* Panel de información tipo Bento */}
               <div className="space-y-4">
-                {/* Reloj en tiempo real */}
-                {/* Panel de información tipo Bento */}
                 <div className="space-y-4">
                   {/* Reloj en tiempo real */}
                   <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200/50">

@@ -46,12 +46,9 @@ export default function ComandasPage() {
 
   // Reloj en tiempo real UTC-3
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      // Ajustar a UTC-3
-      const utcMinus3 = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-      setCurrentTime(utcMinus3);
-    }, 1000);
+  const timer = setInterval(() => {
+    setCurrentTime(new Date());
+  }, 1000);
 
     return () => clearInterval(timer);
   }, []);

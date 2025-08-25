@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import {CheckCircleIcon,XCircleIcon,CubeIcon ,UserIcon , ClockIcon,MapPinIcon,PhoneIcon , BoltIcon, CheckBadgeIcon,NoSymbolIcon,QuestionMarkCircleIcon, ChevronDownIcon }  from '@heroicons/react/24/solid';
 
 interface Comanda {
   id: number;
@@ -40,6 +41,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
   const [showComentario, setShowComentario] = useState(false);
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-ES', {
@@ -51,33 +53,63 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
     });
   };
 
-  const getEstadoColor = (estado: string) => {
+  const getEstadoConfig = (estado: string) => {
     switch (estado) {
       case 'activa':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return {
+          color: 'bg-gradient-to-r from-emerald-500 to-green-500',
+          text: 'text-white',
+          border: 'border-emerald-200/50',
+          bg: 'bg-emerald-50/50',
+          icon: (
+            <BoltIcon className="w-4 h-4 text-white p-0.5" />
+          ),
+          label: 'Activa'
+        };
       case 'en_proceso':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        return {
+          color: 'bg-gradient-to-r from-amber-500 to-orange-500',
+          text: 'text-white',
+          border: 'border-amber-200/50',
+          bg: 'bg-amber-50/50',
+          icon: (
+            <ClockIcon className="w-4 h-4 text-white p-0.5" />
+          ),
+          label: 'En Proceso'
+        };
       case 'completada':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return {
+          color: 'bg-gradient-to-r from-blue-500 to-indigo-500',
+          text: 'text-white',
+          border: 'border-blue-200/50',
+          bg: 'bg-blue-50/50',
+          icon: (
+            <CheckBadgeIcon className="w-4 h-4 text-white p-0.5" />
+          ),
+          label: 'Completada'
+        };
       case 'cancelada':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return {
+          color: 'bg-gradient-to-r from-red-500 to-pink-500',
+          text: 'text-white',
+          border: 'border-red-200/50',
+          bg: 'bg-red-50/50',
+          icon: (
+            <NoSymbolIcon className="w-4 h-4 text-white p-0.5" />
+          ),
+          label: 'Cancelada'
+        };
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getEstadoText = (estado: string) => {
-    switch (estado) {
-      case 'activa':
-        return 'Activa';
-      case 'en_proceso':
-        return 'En Proceso';
-      case 'completada':
-        return 'Completada';
-      case 'cancelada':
-        return 'Cancelada';
-      default:
-        return estado;
+        return {
+          color: 'bg-gradient-to-r from-slate-500 to-gray-500',
+          text: 'text-white',
+          border: 'border-gray-200/50',
+          bg: 'bg-gray-50/50',
+          icon: (
+            <QuestionMarkCircleIcon className="w-4 h-4 text-white p-0.5" />
+          ),
+          label: estado
+        };
     }
   };
 
@@ -104,27 +136,68 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
       switch (comanda.estado) {
         case 'activa':
           return [
-            { estado: 'en_proceso', texto: 'Tomar Pedido', color: 'bg-blue-600 hover:bg-blue-700' }
+            { 
+              estado: 'en_proceso', 
+              texto: 'Tomar Pedido', 
+              color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
+              icon: (
+                  <BoltIcon className="w-4 h-4 text-white p-0.5" />
+              )
+            }
           ];
         case 'en_proceso':
           return [
-            { estado: 'completada', texto: 'Marcar Completada', color: 'bg-green-600 hover:bg-green-700' },
-            { estado: 'cancelada', texto: 'Cancelar', color: 'bg-red-600 hover:bg-red-700' }
+            { 
+              estado: 'completada', 
+              texto: 'Completar', 
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              icon: (
+                <CheckCircleIcon className="w-4 h-4 text-white" />
+              )
+            },
+            { 
+              estado: 'cancelada', 
+              texto: 'Cancelar', 
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              icon: (
+                <XCircleIcon className="w-4 h-4 text-white" />
+              )
+            }
           ];
         default:
           return [];
       }
     } else {
-      // Para tiendas
       switch (comanda.estado) {
         case 'activa':
           return [
-            { estado: 'cancelada', texto: 'Cancelar', color: 'bg-red-600 hover:bg-red-700' }
+            { 
+              estado: 'cancelada', 
+              texto: 'Cancelar', 
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              icon: (
+                <XCircleIcon className="w-4 h-4 text-white" />
+              )
+            }
           ];
         case 'en_proceso':
           return [
-            { estado: 'completada', texto: 'Marcar Completada', color: 'bg-green-600 hover:bg-green-700' },
-            { estado: 'cancelada', texto: 'Cancelar', color: 'bg-red-600 hover:bg-red-700' }
+            { 
+              estado: 'completada', 
+              texto: 'Completar', 
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              icon: (
+                <CheckCircleIcon className="w-4 h-4" />
+              )
+            },
+            { 
+              estado: 'cancelada', 
+              texto: 'Cancelar', 
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              icon: (
+                <NoSymbolIcon className="w-4 h-4 text-white" />
+              )
+            }
           ];
         default:
           return [];
@@ -133,121 +206,166 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
   };
 
   const acciones = getAccionesDisponibles();
+  const estadoConfig = getEstadoConfig(comanda.estado);
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
-      <div className="px-4 py-5 sm:p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">#{comanda.id}</span>
+    <div className="group relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:bg-white/90">
+      {/* Borde de estado */}
+      <div className={`absolute top-0 left-0 right-0 h-1 ${estadoConfig.color} rounded-t-2xl`}></div>
+      
+      {/* Header */}
+      <div className="p-6 pb-4">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-4">
+            {/* ID Badge */}
+            <div className="relative">
+              <div className={`w-14 h-14 ${estadoConfig.color} rounded-2xl flex items-center justify-center shadow-lg ring-4 ring-white/50`}>
+                <span className="text-lg font-bold text-white">#{comanda.id}</span>
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-md">
+                <div className={`w-4 h-4 ${estadoConfig.color} rounded-full flex items-center justify-center`}>
+                  {estadoConfig.icon}
+                </div>
               </div>
             </div>
-            <div className="ml-4">
-              <h3 className="text-lg font-medium text-gray-900">
+
+            {/* Cliente Info */}
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 mb-1">
                 {comanda.cliente_nombre}
               </h3>
-              <div className="mt-1 flex items-center text-sm text-gray-500">
-                <svg className="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {formatDate(comanda.created_at)}
+              <div className="flex items-center text-sm text-slate-500 space-x-4">
+                <div className="flex items-center">
+                  <ClockIcon className="w-4 h-4 mr-1 text-slate-400" />
+                  {formatDate(comanda.created_at)}
+                </div>
               </div>
             </div>
           </div>
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getEstadoColor(comanda.estado)}`}>
-            {getEstadoText(comanda.estado)}
-          </span>
-        </div>
 
-        <div className="mt-4">
-          <div className="text-sm text-gray-600 space-y-1">
-            {comanda.cliente_telefono && (
-              <div className="flex items-center">
-                <svg className="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                </svg>
-                {comanda.cliente_telefono}
-              </div>
-            )}
-            <div className="flex items-start">
-              <svg className="flex-shrink-0 mr-1.5 h-4 w-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              <span>{comanda.cliente_direccion}</span>
-            </div>
-            {comanda.repartidor && (
-              <div className="flex items-center">
-                <svg className="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Repartidor: {comanda.repartidor.nombre}
-              </div>
-            )}
+          {/* Estado Badge */}
+          <div className={`flex items-center space-x-2 px-4 py-2 ${estadoConfig.color} rounded-xl shadow-lg`}>
+            {estadoConfig.icon}
+            <span className="text-sm font-semibold text-white">
+              {estadoConfig.label}
+            </span>
           </div>
         </div>
 
+        {/* Total prominente */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-2xl font-bold text-slate-900">
+            ${comanda.total.toFixed(2)}
+          </div>
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center space-x-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 bg-slate-100/60 hover:bg-slate-200/60 rounded-lg transition-all duration-200"
+          >
+            <span>{expanded ? 'Menos detalles' : 'Ver detalles'}</span>
+            <ChevronDownIcon className={`w-4 h-4 transform transition-transform duration-300 ${expanded ? 'rotate-180' : 'rotate-0'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Información básica visible */}
+      <div className="px-6 pb-4">
+        <div className="grid grid-cols-1 gap-3">
+          {comanda.cliente_telefono && (
+            <div className="flex items-center space-x-3 text-sm text-slate-600">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                <PhoneIcon className="w-4 h-4 text-blue-600" />
+              </div>
+              <span className="font-medium">{comanda.cliente_telefono}</span>
+            </div>
+          )}
+          
+          <div className="flex items-start space-x-3 text-sm text-slate-600">
+            <div className="w-8 h-8 bg-gradient-to-br from-green-100 to-green-200 rounded-lg flex items-center justify-center mt-0.5">
+              <MapPinIcon className="w-4 h-4 text-green-600" />
+            </div>
+            <span className="font-medium leading-relaxed">{comanda.cliente_direccion}</span>
+          </div>
+
+          {comanda.repartidor && (
+            <div className="flex items-center space-x-3 text-sm text-slate-600">
+              <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center">
+                <UserIcon  className="w-4 h-4 text-purple-600" />
+              </div>
+              <span className="font-medium">Repartidor: {comanda.repartidor.nombre}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Detalles expandibles */}
+      <div className={`overflow-hidden transition-all duration-500 ${expanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         {/* Productos */}
         {comanda.productos && comanda.productos.length > 0 && (
-          <div className="mt-4 border-t border-gray-200 pt-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">Productos:</h4>
-            <div className="space-y-1">
-              {comanda.productos.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <span>{item.cantidad}x {item.producto.nombre}</span>
-                  <span>${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Total */}
-        <div className="mt-4 border-t border-gray-200 pt-4">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-medium text-gray-900">Total:</span>
-            <span className="text-xl font-bold text-indigo-600">${comanda.total.toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* Comentario problema */}
-        {comanda.comentario_problema && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-            <div className="flex">
-              <svg className="flex-shrink-0 h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-800">
-                  <span className="font-medium">Comentario: </span>
-                  {comanda.comentario_problema}
-                </p>
+          <div className="px-6 pb-4">
+            <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200/50">
+              <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center">
+                <CubeIcon className="w-5 h-5 text-slate-700 mr-2" />
+                Productos
+              </h4>
+              <div className="space-y-2">
+                {comanda.productos.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg shadow-sm border border-slate-100">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                        {item.cantidad}
+                      </div>
+                      <span className="font-medium text-slate-700">{item.producto.nombre}</span>
+                    </div>
+                    <span className="font-bold text-slate-900">
+                      ${(item.precio_unitario * item.cantidad).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
+      </div>
 
-        {/* Campo de comentario para cancelación */}
-        {showComentario && (
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+      {/* Comentario problema */}
+      {comanda.comentario_problema && (
+        <div className="px-6 pb-4">
+          <div className="bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200/60 rounded-xl p-4">
+            <div className="flex items-start space-x-3">
+              <div className="w-6 h-6 bg-amber-100 rounded-lg flex items-center justify-center">
+                <CubeIcon className="w-4 h-4 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-amber-800 mb-1">Comentario:</p>
+                <p className="text-sm text-amber-700 leading-relaxed">{comanda.comentario_problema}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Campo de comentario para cancelación */}
+      {showComentario && (
+        <div className="px-6 pb-4">
+          <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 border border-red-200/60">
+            <label className="block text-sm font-bold text-red-800 mb-3">
               Motivo de cancelación:
             </label>
             <textarea
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white/80 backdrop-blur-sm resize-none"
               placeholder="Explica el motivo de la cancelación..."
             />
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Acciones */}
-        {acciones.length > 0 && (
-          <div className="mt-6 flex flex-wrap gap-2">
+      {/* Acciones */}
+      {acciones.length > 0 && (
+        <div className="px-6 pb-6">
+          <div className="flex flex-wrap gap-3">
             {showComentario ? (
               <>
                 <button
@@ -255,17 +373,19 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
                     setShowComentario(false);
                     setComentario('');
                   }}
-                  className="flex-1 min-w-0 px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 border-2 border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 disabled:opacity-50"
                   disabled={loading}
                 >
-                  Cancelar
+                  <XCircleIcon className="w-4 h-4 text-white" />
+                  <span>Cancelar</span>
                 </button>
                 <button
                   onClick={() => handleEstadoChange('cancelada')}
                   disabled={loading || !comentario.trim()}
-                  className="flex-1 min-w-0 px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
-                  {loading ? 'Procesando...' : 'Confirmar Cancelación'}
+                  <XCircleIcon className="w-4 h-4 text-white" />
+                  <span>{loading ? 'Procesando...' : 'Confirmar'}</span>
                 </button>
               </>
             ) : (
@@ -274,15 +394,16 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
                   key={accion.estado}
                   onClick={() => handleEstadoChange(accion.estado)}
                   disabled={loading}
-                  className={`flex-1 min-w-0 px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white ${accion.color} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-semibold rounded-xl text-white ${accion.color} shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02]`}
                 >
-                  {loading ? 'Procesando...' : accion.texto}
+                  {accion.icon}
+                  <span>{loading ? 'Procesando...' : accion.texto}</span>
                 </button>
               ))
             )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
