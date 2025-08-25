@@ -4,6 +4,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { BuildingStorefrontIcon, MapPinIcon, PhoneIcon, ClockIcon, InformationCircleIcon,HomeIcon,ArrowRightCircleIcon,ArchiveBoxXMarkIcon} from '@heroicons/react/24/solid';
+
 
 interface Tienda {
   id: number;
@@ -38,12 +40,9 @@ export default function SelectTiendaPage() {
 
   // Reloj en tiempo real UTC-3
   useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      // Ajustar a UTC-3
-      const utcMinus3 = new Date(now.getTime() - (3 * 60 * 60 * 1000));
-      setCurrentTime(utcMinus3);
-    }, 1000);
+  const timer = setInterval(() => {
+    setCurrentTime(new Date());
+  }, 1000);
 
     return () => clearInterval(timer);
   }, []);
@@ -153,7 +152,7 @@ export default function SelectTiendaPage() {
             
             <button
               onClick={handleLogout}
-              className="group flex items-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+              className="group flex cursor-pointer items-center space-x-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
             >
               <svg className="w-4 h-4 group-hover:animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -174,7 +173,7 @@ export default function SelectTiendaPage() {
               <div className="lg:col-span-2">
                 <div className="flex items-start space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-xl">
-                    <img src="https://img.reshot.com/256/YGUATR9M3X.png" alt="Welcome" className="w-8 h-8" />
+                    <HomeIcon className="h-8 w-8 text-white" />
                   </div>
                   <div className="flex-1">
                     <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
@@ -197,40 +196,47 @@ export default function SelectTiendaPage() {
               {/* Panel de información tipo Bento */}
               <div className="space-y-4">
                 {/* Reloj en tiempo real */}
-                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
-                      <img src="https://img.reshot.com/256/HLWQJ8F7NZ.png" alt="Clock" className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Hora Local (UTC-3)</p>
-                      <p className="text-lg font-bold text-slate-900">
-                        {currentTime.toLocaleTimeString('es-CL', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        })}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {currentTime.toLocaleDateString('es-CL', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long'
-                        })}
-                      </p>
+                {/* Panel de información tipo Bento */}
+                <div className="space-y-4">
+                  {/* Reloj en tiempo real */}
+                  <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-200/50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-orange-400 to-yellow-500 rounded-lg flex items-center justify-center shadow-lg">
+                        <ClockIcon className="h-5 w-5 text-white" /> 
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Hora Local (UTC-3)</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {currentTime.toLocaleTimeString('es-AR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false,
+                            timeZone: 'America/Argentina/Buenos_Aires' // 👈 forzamos UTC-3
+                          })}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {currentTime.toLocaleDateString('es-AR', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long',
+                            timeZone: 'America/Argentina/Buenos_Aires' // 👈 también en la fecha
+                          })}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
+
 
                 {/* Tipo de usuario */}
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
-                      <img src="https://img.reshot.com/256/XZYLM6Q4HP.png" alt="User" className="w-5 h-5" />
+                      <InformationCircleIcon className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Rol del Usuario</p>
+                      <p className="text-sm font-medium text-slate-700">Rol</p>
                       <p className="text-lg font-bold text-slate-900 capitalize">{user.tipo}</p>
                       <div className="flex items-center space-x-1 mt-1">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
@@ -273,7 +279,7 @@ export default function SelectTiendaPage() {
               <div className="flex items-center space-x-6">
                 <div className="flex-shrink-0">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-                    <img src="https://img.reshot.com/256/QTGAYN2JXH.png" alt="Store" className="w-8 h-8 brightness-0 invert" />
+                    <BuildingStorefrontIcon className="h-6 w-6 text-white" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -281,14 +287,14 @@ export default function SelectTiendaPage() {
                   <div className="space-y-1">
                     {tiendas[0].direccion && (
                       <div className="flex items-center text-slate-600">
-                        <img src="https://img.reshot.com/256/CKQG3FHJVN.png" alt="Location" className="w-4 h-4 mr-2 flex-shrink-0 opacity-60" />
-                        <span className="text-sm">{tiendas[0].direccion}</span>
+                        <MapPinIcon className="h-6 w-6 text-indigo-600" />
+                        <span className="text-sm pl-0.5">{tiendas[0].direccion}</span>
                       </div>
                     )}
                     {tiendas[0].telefono && (
                       <div className="flex items-center text-slate-600">
-                        <img src="https://img.reshot.com/256/MDJH4Z8LFT.png" alt="Phone" className="w-4 h-4 mr-2 flex-shrink-0 opacity-60" />
-                        <span className="text-sm">{tiendas[0].telefono}</span>
+                        <PhoneIcon className="h-5 w-5 text-indigo-600" />
+                        <span className="text-sm pl-0.5">{tiendas[0].telefono}</span>
                       </div>
                     )}
                   </div>
@@ -313,7 +319,7 @@ export default function SelectTiendaPage() {
               {tiendas.length === 0 ? (
                 <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 p-12 text-center">
                   <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <img src="https://img.reshot.com/256/QTGAYN2JXH.png" alt="No stores" className="w-10 h-10 opacity-50" />
+                    <ArchiveBoxXMarkIcon className="h-10 w-10 text-slate-500" />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">
                     {user.tipo === 'tienda' ? 'No tienes tiendas configuradas' : 'No tienes tiendas asignadas'}
@@ -346,13 +352,7 @@ export default function SelectTiendaPage() {
                               ? 'bg-gradient-to-br from-blue-500 to-indigo-600'
                               : 'bg-gradient-to-br from-slate-200 to-slate-300 group-hover:from-blue-400 group-hover:to-indigo-500'
                           }`}>
-                            <img 
-                              src="https://img.reshot.com/256/QTGAYN2JXH.png" 
-                              alt="Store" 
-                              className={`w-6 h-6 transition-all duration-300 ${
-                                selectedTienda === tienda.id ? 'brightness-0 invert' : 'opacity-70 group-hover:brightness-0 group-hover:invert'
-                              }`} 
-                            />
+                            <BuildingStorefrontIcon className="h-6 w-6 text-white" />
                           </div>
                           
                           {selectedTienda === tienda.id && (
@@ -369,14 +369,14 @@ export default function SelectTiendaPage() {
                           
                           {tienda.direccion && (
                             <div className="flex items-start text-slate-600">
-                              <img src="https://img.reshot.com/256/CKQG3FHJVN.png" alt="Location" className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 opacity-60" />
+                              <MapPinIcon className="h-4 w-4 text-indigo-600 mr-2 flex-shrink-0 mt-0.5" />
                               <span className="text-sm leading-relaxed">{tienda.direccion}</span>
                             </div>
                           )}
                           
                           {tienda.telefono && (
                             <div className="flex items-center text-slate-600">
-                              <img src="https://img.reshot.com/256/MDJH4Z8LFT.png" alt="Phone" className="w-4 h-4 mr-2 flex-shrink-0 opacity-60" />
+                              <PhoneIcon className="h-4 w-4 text-indigo-600 mr-2 flex-shrink-0" />
                               <span className="text-sm">{tienda.telefono}</span>
                             </div>
                           )}
@@ -408,15 +408,8 @@ export default function SelectTiendaPage() {
               }`}
             >
               <div className="flex items-center space-x-3">
-                <img 
-                  src="https://img.reshot.com/256/CPNK6LW8VZ.png" 
-                  alt="Continue" 
-                  className="w-5 h-5 brightness-0 invert" 
-                />
                 <span className="text-lg">Continuar</span>
-                <svg className={`w-5 h-5 transition-transform duration-300 ${selectedTienda ? 'group-hover:translate-x-1' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
+                <ArrowRightCircleIcon className={`w-5 h-5 transition-transform duration-300 ${selectedTienda ? 'group-hover:translate-x-1' : ''}`} />
               </div>
               
               {/* Button shine effect */}
