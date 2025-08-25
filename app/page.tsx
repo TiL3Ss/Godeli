@@ -3,29 +3,26 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, getSession } from 'next-auth/react';
-import { useAuth } from '../app/hooks/useAuth';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
-  const [identifier, setIdentifier] = useState(''); // Username o email
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
-  const { isAuthenticated, isLoading, userProfile, isTienda, isRepartidor } = useAuth();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    // Redirigir si ya está autenticado y tenemos el perfil del usuario
-    if (isAuthenticated && userProfile) {
-      redirectBasedOnRole();
+    // Redirigir si ya está autenticado
+    if (status === 'authenticated' && session?.user) {
+      redirectBasedOnRole(session.user.role);
     }
-  }, [isAuthenticated, userProfile, router]);
+  }, [status, session, router]);
 
   // Redirigir según el rol del usuario
-  const redirectBasedOnRole = () => {
-    if (!userProfile) return;
-    
-    switch (userProfile.role) {
+  const redirectBasedOnRole = (role: string) => {
+    switch (role) {
       case 'tienda':
         router.push('/dashboard/tienda');
         break;
@@ -82,11 +79,8 @@ export default function LoginPage() {
         }
       } else if (result?.ok) {
         console.log('Login exitoso');
-        // El hook useAuth se actualizará automáticamente
-        // Dar tiempo para que se actualice la sesión
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
+        // NextAuth se encargará automáticamente de actualizar la sesión
+        // No necesitamos hacer reload manual
       } else {
         console.error('Resultado inesperado:', result);
         setError('Error inesperado al iniciar sesión');
@@ -99,8 +93,8 @@ export default function LoginPage() {
     }
   };
 
-  // Mostrar loading mientras se verifica la sesión o se carga el perfil
-  if (isLoading) {
+  // Mostrar loading mientras se verifica la sesión
+  if (status === 'loading') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
@@ -112,7 +106,7 @@ export default function LoginPage() {
   }
 
   // No mostrar el formulario si ya está autenticado
-  if (isAuthenticated) {
+  if (status === 'authenticated') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
