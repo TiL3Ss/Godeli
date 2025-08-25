@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../hooks/useAuth';
+import { useSession } from 'next-auth/react';
 import ProtectedRoute from '../components/ProtectedRoute';
 
 interface Producto {
@@ -45,83 +45,184 @@ interface FiltrosHistorial {
   productos?: number[];
 }
 
+interface UserProfile {
+  id: number;
+  username: string;
+  name: string;
+  tipo: 'admin' | 'tienda' | 'repartidor';
+  tienda_id?: number;
+}
+
 export default function HistorialPage() {
-  const { userProfile, isAuthenticated } = useAuth();
+  const { data: session, status } = useSession();
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [comandas, setComandas] = useState<Comanda[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [tiendaId, setTiendaId] = useState<number | null>(null);
   const [filtros, setFiltros] = useState<FiltrosHistorial>({});
   const [showProductFilter, setShowProductFilter] = useState(false);
+  const [error, setError] = useState<string>('');
   const router = useRouter();
 
+  // Get user profile from session or API
   useEffect(() => {
-    if (isAuthenticated && userProfile) {
-      if (userProfile.role === 'tienda' && userProfile.tienda_id) {
-        setTiendaId(userProfile.tienda_id);
-        loadData(userProfile.tienda_id, false);
-      } else {
-        const selectedTiendaId = localStorage.getItem('selected_tienda_id');
-        if (selectedTiendaId) {
-          setTiendaId(Number(selectedTiendaId));
-          loadData(Number(selectedTiendaId), userProfile.role === 'repartidor');
-        } else {
-          router.push('/select-tienda');
+    const loadUserProfile = async () => {
+      if (status === 'loading') return;
+      
+      if (status === 'unauthenticated' || !session?.user) {
+        router.push('/');
+        return;
+      }
+
+      try {
+        // If user profile is in session, use it
+        if (session.user.tipo) {
+          const profile: UserProfile = {
+            id: session.user.id || 0,
+            username: session.user.username || '',
+            name: session.user.name || '',
+            tipo: session.user.tipo as 'admin' | 'tienda' | 'repartidor',
+            tienda_id: session.user.tienda_id
+          };
+          setUserProfile(profile);
+          return;
         }
+
+        // Otherwise fetch from API
+        const response = await fetch('/api/user/profile');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUserProfile(data.user);
+          } else {
+            setError('Error al obtener perfil de usuario');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setError('Error de conexión al obtener perfil');
+      }
+    };
+
+    loadUserProfile();
+  }, [session, status, router]);
+
+  // Load data when user profile is available
+  useEffect(() => {
+    if (!userProfile) return;
+
+    if (userProfile.tipo === 'tienda' && userProfile.tienda_id) {
+      setTiendaId(userProfile.tienda_id);
+      loadData(userProfile.tienda_id, false);
+    } else {
+      // For admin or repartidor, get tienda from session storage
+      const selectedTiendaId = sessionStorage.getItem('selected_tienda_id');
+      if (selectedTiendaId) {
+        const tiendaIdNum = Number(selectedTiendaId);
+        setTiendaId(tiendaIdNum);
+        loadData(tiendaIdNum, userProfile.tipo === 'repartidor');
+      } else {
+        router.push('/select-tienda');
       }
     }
-  }, [userProfile, isAuthenticated, router]);
+  }, [userProfile, router]);
 
   const loadData = async (tiendaId: number, esRepartidor: boolean) => {
     try {
+      setLoading(true);
+      setError('');
+
       const [comandasData, productosData] = await Promise.all([
         getHistorialComandas(tiendaId, filtros, esRepartidor),
         getProductosTienda(tiendaId)
       ]);
+      
       setComandas(comandasData);
       setProductos(productosData);
     } catch (error) {
       console.error('Error al cargar datos:', error);
+      setError('Error al cargar los datos del historial');
     } finally {
       setLoading(false);
     }
   };
 
   const getHistorialComandas = async (tiendaId: number, filtros: FiltrosHistorial, esRepartidor: boolean) => {
-    const params = new URLSearchParams({
-      tienda_id: tiendaId.toString(),
-      repartidor: esRepartidor.toString()
-    });
+    try {
+      const params = new URLSearchParams({
+        tienda_id: tiendaId.toString(),
+        repartidor: esRepartidor.toString()
+      });
 
-    if (filtros.estado) params.append('estado', filtros.estado);
-    if (filtros.fecha) params.append('fecha', filtros.fecha);
-    if (filtros.productos && filtros.productos.length > 0) {
-      params.append('productos', filtros.productos.join(','));
-    }
+      if (filtros.estado) params.append('estado', filtros.estado);
+      if (filtros.fecha) params.append('fecha', filtros.fecha);
+      if (filtros.productos && filtros.productos.length > 0) {
+        params.append('productos', filtros.productos.join(','));
+      }
 
-    const response = await fetch(`/api/historial?${params}`);
-    if (response.ok) {
-      return response.json();
+      const response = await fetch(`/api/historial?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al obtener historial');
+      }
+
+      if (data.success) {
+        return data.comandas || [];
+      } else {
+        throw new Error(data.error || 'Error al obtener historial');
+      }
+    } catch (error) {
+      console.error('Error fetching historial:', error);
+      throw error;
     }
-    throw new Error('Error al obtener historial');
   };
 
   const getProductosTienda = async (tiendaId: number) => {
-    const response = await fetch(`/api/productos?tienda_id=${tiendaId}`);
-    if (response.ok) {
-      return response.json();
+    try {
+      const response = await fetch(`/api/productos?tienda_id=${tiendaId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.warn('Error al obtener productos:', data.error);
+        return [];
+      }
+
+      if (data.success) {
+        return data.productos || [];
+      } else {
+        console.warn('Error al obtener productos:', data.error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Error fetching productos:', error);
+      return [];
     }
-    return [];
   };
 
   const aplicarFiltros = async () => {
     if (tiendaId && userProfile) {
       setLoading(true);
       try {
-        const comandasData = await getHistorialComandas(tiendaId, filtros, userProfile.role === 'repartidor');
+        const comandasData = await getHistorialComandas(tiendaId, filtros, userProfile.tipo === 'repartidor');
         setComandas(comandasData);
+        setError('');
       } catch (error) {
         console.error('Error al aplicar filtros:', error);
+        setError('Error al aplicar filtros');
       } finally {
         setLoading(false);
       }
@@ -131,7 +232,7 @@ export default function HistorialPage() {
   const limpiarFiltros = () => {
     setFiltros({});
     if (tiendaId && userProfile) {
-      loadData(tiendaId, userProfile.role === 'repartidor');
+      loadData(tiendaId, userProfile.tipo === 'repartidor');
     }
   };
 
@@ -192,6 +293,37 @@ export default function HistorialPage() {
     }
   };
 
+  // Show loading while session is loading
+  if (status === 'loading' || (!userProfile && !error)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if user profile failed to load
+  if (error && !userProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <p className="text-red-600">{error}</p>
+            <button
+              onClick={() => router.push('/')}
+              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+            >
+              Volver al inicio
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50">
@@ -213,6 +345,24 @@ export default function HistorialPage() {
             </div>
           </div>
         </header>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-800">{error}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filtros */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -298,9 +448,10 @@ export default function HistorialPage() {
               </button>
               <button
                 onClick={aplicarFiltros}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+                disabled={loading}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Aplicar Filtros
+                {loading ? 'Aplicando...' : 'Aplicar Filtros'}
               </button>
             </div>
           </div>
@@ -312,7 +463,7 @@ export default function HistorialPage() {
                 Comandas ({comandas.length})
               </h3>
               <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                {userProfile?.role === 'repartidor' ? 'Comandas asignadas a ti' : 'Historial de todas las comandas'}
+                {userProfile?.tipo === 'repartidor' ? 'Comandas asignadas a ti' : 'Historial de todas las comandas'}
               </p>
             </div>
             

@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
+import Image from 'next/image';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -49,7 +50,7 @@ export default function LoginPage() {
       console.log('Intentando login con:', username.trim());
       
       const result = await signIn('credentials', {
-        identifier: username.trim(),
+        username: username.trim(),
         password: password,
         redirect: false,
       });
@@ -86,6 +87,17 @@ export default function LoginPage() {
     }
   };
 
+  // Función para rellenar credenciales de prueba
+  const fillTestCredentials = (userType: 'tienda' | 'repartidor') => {
+    if (userType === 'tienda') {
+      setUsername('testTienda');
+      setPassword('Test1234');
+    } else {
+      setUsername('testRepartidor');
+      setPassword('Test1234');
+    }
+  };
+
   // Mostrar loading mientras se verifica la sesión
   if (status === 'loading') {
     return (
@@ -114,10 +126,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-indigo-100">
-            <svg className="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
+          <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-indigo-100">
+            <Image src="/images/go_sf.png" alt="Logo" width={100} height={100} className=""/>
           </div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sistema de Comandas
@@ -204,10 +214,36 @@ export default function LoginPage() {
 
           <div className="text-center">
             <div className="text-sm text-gray-600">
-              <p className="mb-2">Usuarios de prueba:</p>
-              <div className="space-y-1 text-xs">
-                <p><span className="font-semibold">Tienda:</span> tienda1 / password123</p>
-                <p><span className="font-semibold">Repartidor:</span> repartidor1 / password123</p>
+              <p className="mb-3 font-medium">Usuarios de prueba:</p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <div className="text-left">
+                    <p className="text-xs font-semibold text-gray-700">Tienda:</p>
+                    <p className="text-xs text-gray-600">testTienda / Test1234</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fillTestCredentials('tienda')}
+                    className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200 transition-colors"
+                    disabled={loading}
+                  >
+                    Usar
+                  </button>
+                </div>
+                <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                  <div className="text-left">
+                    <p className="text-xs font-semibold text-gray-700">Repartidor:</p>
+                    <p className="text-xs text-gray-600">testRepartidor / Test1234</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fillTestCredentials('repartidor')}
+                    className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors"
+                    disabled={loading}
+                  >
+                    Usar
+                  </button>
+                </div>
               </div>
             </div>
           </div>

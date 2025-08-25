@@ -1,7 +1,7 @@
 // app/api/comandas/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '../../api/[...nextauth]/route';
+import { authOptions } from '../auth/[...nextauth]/route';
 import { getTursoClient } from '../../../lib/turso';
 
 export async function GET(request: NextRequest) {
