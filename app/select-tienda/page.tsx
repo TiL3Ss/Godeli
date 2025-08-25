@@ -3,8 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthUser, clearAuthUser } from '../../lib/auth';
-import { getTiendasRepartidor } from '../../lib/db';
 import { AuthUser, Tienda } from '../../types';
 
 export default function SelectTiendaPage() {
@@ -23,22 +21,59 @@ export default function SelectTiendaPage() {
 
     setUser(authUser);
     
-    if (authUser.tipo === 'tienda' && authUser.tienda) {
-      // Para tiendas, seleccionar automáticamente su tienda
-      setSelectedTienda(authUser.tienda.id);
-      setLoading(false);
-    } else if (authUser.tipo === 'repartidor') {
+    if (authUser.role === 'tienda' && authUser.tienda_id) {
+      // Para tiendas, cargar su tienda específica
+      loadTiendaByUser(authUser.tienda_id);
+    } else if (authUser.role === 'repartidor') {
       // Para repartidores, cargar las tiendas disponibles
-      loadTiendas(authUser.id);
+      loadTiendasRepartidor(authUser.id);
+    } else if (authUser.role === 'admin') {
+      // Para admin, cargar todas las tiendas
+      loadAllTiendas();
     }
   }, [router]);
 
-  const loadTiendas = async (repartidorId: number) => {
+  const loadTiendaByUser = async (tiendaId: number) => {
     try {
-      const tiendasData = await getTiendasRepartidor(repartidorId);
-      setTiendas(tiendasData);
+      const response = await fetch(`/api/tiendas/${tiendaId}`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setTiendas([data.data]);
+        setSelectedTienda(data.data.id);
+      }
     } catch (error) {
-      console.error('Error al cargar tiendas:', error);
+      console.error('Error al cargar tienda:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTiendasRepartidor = async (repartidorId: string) => {
+    try {
+      const response = await fetch(`/api/repartidores/${repartidorId}/tiendas`);
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setTiendas(data.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar tiendas del repartidor:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAllTiendas = async () => {
+    try {
+      const response = await fetch('/api/tiendas');
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setTiendas(data.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar todas las tiendas:', error);
     } finally {
       setLoading(false);
     }
@@ -60,6 +95,23 @@ export default function SelectTiendaPage() {
     router.push('/login');
   };
 
+  // Función auxiliar para obtener el usuario autenticado
+  const getAuthUser = (): AuthUser | null => {
+    try {
+      const userStr = localStorage.getItem('auth_user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  // Función auxiliar para limpiar el usuario autenticado
+  const clearAuthUser = () => {
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('selected_tienda_id');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -72,6 +124,9 @@ export default function SelectTiendaPage() {
     return null;
   }
 
+  // Encontrar la tienda del usuario si es tipo tienda
+  const userTienda = user.role === 'tienda' && tiendas.length > 0 ? tiendas[0] : null;
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
@@ -80,10 +135,15 @@ export default function SelectTiendaPage() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Bienvenido, {user.nombre}
+                  Bienvenido, {user.nombre || user.username}
                 </h1>
                 <p className="mt-1 text-sm text-gray-600">
-                  {user.tipo === 'tienda' ? 'Administrar tu tienda' : 'Selecciona una tienda para trabajar'}
+                  {user.role === 'tienda' 
+                    ? 'Administrar tu tienda' 
+                    : user.role === 'admin'
+                    ? 'Selecciona una tienda para administrar'
+                    : 'Selecciona una tienda para trabajar'
+                  }
                 </p>
               </div>
               <button
@@ -97,7 +157,7 @@ export default function SelectTiendaPage() {
               </button>
             </div>
 
-            {user.tipo === 'tienda' && user.tienda ? (
+            {user.role === 'tienda' && userTienda ? (
               <div className="space-y-6">
                 <div className="border rounded-lg p-4 bg-indigo-50 border-indigo-200">
                   <div className="flex items-center">
@@ -107,12 +167,12 @@ export default function SelectTiendaPage() {
                       </svg>
                     </div>
                     <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900">{user.tienda.nombre}</h3>
-                      {user.tienda.direccion && (
-                        <p className="mt-1 text-sm text-gray-600">{user.tienda.direccion}</p>
+                      <h3 className="text-lg font-medium text-gray-900">{userTienda.nombre}</h3>
+                      {userTienda.direccion && (
+                        <p className="mt-1 text-sm text-gray-600">{userTienda.direccion}</p>
                       )}
-                      {user.tienda.telefono && (
-                        <p className="mt-1 text-sm text-gray-600">Tel: {user.tienda.telefono}</p>
+                      {userTienda.telefono && (
+                        <p className="mt-1 text-sm text-gray-600">Tel: {userTienda.telefono}</p>
                       )}
                     </div>
                   </div>
@@ -120,15 +180,24 @@ export default function SelectTiendaPage() {
               </div>
             ) : (
               <div className="space-y-6">
-                <h2 className="text-lg font-medium text-gray-900">Selecciona una tienda</h2>
+                <h2 className="text-lg font-medium text-gray-900">
+                  {user.role === 'admin' ? 'Selecciona una tienda para administrar' : 'Selecciona una tienda'}
+                </h2>
                 
                 {tiendas.length === 0 ? (
                   <div className="text-center py-12">
                     <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H7m2 0v-5a2 2 0 012-2h2a2 2 0 012 2v5m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v8" />
                     </svg>
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No tienes tiendas asignadas</h3>
-                    <p className="mt-1 text-sm text-gray-500">Contacta al administrador para que te asigne tiendas.</p>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      {user.role === 'admin' ? 'No hay tiendas disponibles' : 'No tienes tiendas asignadas'}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {user.role === 'admin' 
+                        ? 'Crea una tienda para comenzar.' 
+                        : 'Contacta al administrador para que te asigne tiendas.'
+                      }
+                    </p>
                   </div>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2">
