@@ -1,25 +1,24 @@
-// app/login/page.tsx
+// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '../../lib/db';
-import { setAuthUser, getAuthUser } from '../../lib/auth';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState(''); // username o email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     // Redirigir si ya está autenticado
-    const user = getAuthUser();
-    if (user) {
+    if (status === 'authenticated') {
       router.push('/select-tienda');
     }
-  }, [router]);
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,20 +26,40 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const user = await loginUser(username, password);
-      if (user) {
-        setAuthUser(user);
-        router.push('/select-tienda');
-      } else {
+      const result = await signIn('credentials', {
+        identifier: identifier.trim(),
+        password,
+        redirect: false, // No redirigir automáticamente
+      });
+
+      if (result?.error) {
         setError('Usuario o contraseña incorrectos');
+      } else if (result?.ok) {
+        // Login exitoso, NextAuth manejará la redirección
+        router.push('/select-tienda');
       }
     } catch (err) {
       setError('Error al iniciar sesión');
-      console.error(err);
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Mostrar loading mientras se verifica la sesión
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="flex items-center space-x-2">
+          <svg className="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span className="text-indigo-600">Verificando sesión...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -61,18 +80,18 @@ export default function LoginPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Usuario
+              <label htmlFor="identifier" className="sr-only">
+                Usuario o Email
               </label>
               <input
-                id="username"
-                name="username"
+                id="identifier"
+                name="identifier"
                 type="text"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Usuario o Email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
               />
             </div>
             <div>
@@ -133,8 +152,8 @@ export default function LoginPage() {
             <div className="text-sm text-gray-600">
               <p className="mb-2">Usuarios de prueba:</p>
               <div className="space-y-1 text-xs">
-                <p><span className="font-semibold">Tienda:</span> tienda1 / password123</p>
-                <p><span className="font-semibold">Repartidor:</span> repartidor1 / password123</p>
+                <p><span className="font-semibold">Usuario:</span> admin / password123</p>
+                <p><span className="font-semibold">Email:</span> admin@example.com / password123</p>
               </div>
             </div>
           </div>
