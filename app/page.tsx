@@ -1,46 +1,110 @@
-// app/login/page.tsx
+// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '@/lib/db';
-import { setAuthUser, getAuthUser } from '../lib/auth';
+import { signIn, getSession } from 'next-auth/react';
+import { useAuth } from '../app/hooks/useAuth';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState(''); // Username o email
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const { isAuthenticated, isLoading, userProfile, isTienda, isRepartidor } = useAuth();
 
   useEffect(() => {
-    // Redirigir si ya está autenticado
-    const user = getAuthUser();
-    if (user) {
-      router.push('/select-tienda');
+    // Redirigir si ya está autenticado y tenemos el perfil del usuario
+    if (isAuthenticated && userProfile) {
+      redirectBasedOnRole();
     }
-  }, [router]);
+  }, [isAuthenticated, userProfile, router]);
+
+  // Redirigir según el rol del usuario
+  const redirectBasedOnRole = () => {
+    if (!userProfile) return;
+    
+    switch (userProfile.role) {
+      case 'tienda':
+        router.push('/dashboard/tienda');
+        break;
+      case 'repartidor':
+        router.push('/dashboard/repartidor');
+        break;
+      case 'admin':
+        router.push('/dashboard/admin');
+        break;
+      default:
+        router.push('/select-tienda');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // Validaciones básicas
+    if (!identifier.trim() || !password.trim()) {
+      setError('Por favor ingresa usuario/email y contraseña');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const user = await loginUser(username, password);
-      if (user) {
-        setAuthUser(user);
-        router.push('/select-tienda');
+      const result = await signIn('credentials', {
+        identifier: identifier.trim(),
+        password: password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error === 'CredentialsSignin' 
+          ? 'Usuario/email o contraseña incorrectos' 
+          : result.error
+        );
+      } else if (result?.ok) {
+        // Login exitoso, obtener la sesión actualizada
+        const session = await getSession();
+        if (session?.user) {
+          // El hook useAuth se actualizará automáticamente y redirigirá
+          // No necesitamos hacer la redirección manualmente aquí
+        }
       } else {
-        setError('Usuario o contraseña incorrectos');
+        setError('Error inesperado al iniciar sesión');
       }
-    } catch (err) {
-      setError('Error al iniciar sesión');
-      console.error(err);
+    } catch (err: any) {
+      setError(err.message || 'Error al iniciar sesión');
+      console.error('Login error:', err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Mostrar loading mientras se verifica la sesión o se carga el perfil
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // No mostrar el formulario si ya está autenticado
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Redirigiendo...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -58,21 +122,24 @@ export default function LoginPage() {
             Ingresa tus credenciales para continuar
           </p>
         </div>
+        
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Usuario
+              <label htmlFor="identifier" className="sr-only">
+                Usuario o Email
               </label>
               <input
-                id="username"
-                name="username"
+                id="identifier"
+                name="identifier"
                 type="text"
                 required
+                autoComplete="username"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Usuario o Email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                disabled={loading}
               />
             </div>
             <div>
@@ -84,10 +151,12 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
+                autoComplete="current-password"
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
               />
             </div>
           </div>
@@ -113,7 +182,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <>
@@ -133,8 +202,8 @@ export default function LoginPage() {
             <div className="text-sm text-gray-600">
               <p className="mb-2">Usuarios de prueba:</p>
               <div className="space-y-1 text-xs">
-                <p><span className="font-semibold">Tienda:</span> tienda1 / password123</p>
-                <p><span className="font-semibold">Repartidor:</span> repartidor1 / password123</p>
+                <p><span className="font-semibold">Tienda:</span> tienda1@example.com / password123</p>
+                <p><span className="font-semibold">Repartidor:</span> repartidor1@example.com / password123</p>
               </div>
             </div>
           </div>
