@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthUser, clearAuthUser } from '@/lib/auth';
-import { getTiendasRepartidor } from '@/lib/db';
-import { AuthUser, Tienda } from '@/types';
+import { getAuthUser, clearAuthUser } from '../../lib/auth';
+import { getTiendasRepartidor } from '../../lib/db';
+import { AuthUser, Tienda } from '../../types';
 
 export default function SelectTiendaPage() {
   const [user, setUser] = useState<AuthUser | null>(null);

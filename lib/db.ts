@@ -1,6 +1,6 @@
 // lib/db.ts
 import { getTursoClient } from './turso';
-import { Usuario, Tienda, Comanda, Producto, ComandaFormData, FiltrosHistorial } from '@/types';
+import { Usuario, Tienda, Comanda, Producto, ComandaFormData, FiltrosHistorial } from '../types';
 
 const client = getTursoClient();
 

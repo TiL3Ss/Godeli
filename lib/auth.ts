@@ -1,5 +1,5 @@
 // lib/auth.ts
-import { AuthUser } from '@/types';
+import { AuthUser } from '../types';
 
 const AUTH_KEY = 'pedidos_auth_user';
 

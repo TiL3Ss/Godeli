@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { loginUser } from '@/lib/db';
-import { setAuthUser, getAuthUser } from '@/lib/auth';
+import { loginUser } from '../../lib/db';
+import { setAuthUser, getAuthUser } from '../../lib/auth';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');

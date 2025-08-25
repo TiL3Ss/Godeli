@@ -3,9 +3,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthUser } from '@/lib/auth';
-import { getHistorialComandas, getProductosTienda } from '@/lib/db';
-import { AuthUser, Comanda, Producto, FiltrosHistorial } from '@/types';
+import { getAuthUser } from '../../lib/auth';
+import { getHistorialComandas, getProductosTienda } from '../../lib/db';
+import { AuthUser, Comanda, Producto, FiltrosHistorial } from '../../types';
 
 export default function HistorialPage() {
   const [user, setUser] = useState<AuthUser | null>(null);

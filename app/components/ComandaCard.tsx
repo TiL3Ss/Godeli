@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Comanda } from '@/types';
+import { Comanda } from '../../types';
 
 interface ComandaCardProps {
   comanda: Comanda;

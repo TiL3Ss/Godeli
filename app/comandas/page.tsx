@@ -3,11 +3,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthUser, clearAuthUser } from '@/lib/auth';
-import { getComandasActivas, actualizarEstadoComanda } from '@/lib/db';
-import { AuthUser, Comanda } from '@/types';
-import ComandaCard from '@/components/ComandaCard';
-import AgregarComandaModal from '@/components/AgregarComandaModal';
+import { getAuthUser, clearAuthUser } from '../../lib/auth';
+import { getComandasActivas, actualizarEstadoComanda } from '../../lib/db';
+import { AuthUser, Comanda } from '../../types';
+import ComandaCard from '../components/ComandaCard';
+import AgregarComandaModal from '../components/AgregarComandaModal';
 
 export default function ComandasPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
