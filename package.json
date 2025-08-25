@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@auth/core": "^0.40.0",
     "@libsql/client": "^0.15.12",
     "@types/bcryptjs": "^2.4.6",
     "bcryptjs": "^3.0.2",
