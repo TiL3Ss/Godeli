@@ -6,9 +6,9 @@ import bcrypt from 'bcryptjs';
 import { DefaultSession } from 'next-auth';
 
 // Constantes para mejor legibilidad
-const SESSION_MAX_AGE = 60 * 60 * 3; // 3 horas en segundos
-const SESSION_UPDATE_AGE = 30 * 60; // 30 minutos en segundos (refresh automático)
-const JWT_EXPIRATION = 3 * 60 * 60 * 1000; // 3 horas en milisegundos (para JWT)
+const SESSION_MAX_AGE = 60 * 60 * 3; 
+const SESSION_UPDATE_AGE = 30 * 60; 
+const JWT_EXPIRATION = 3 * 60 * 60 * 1000; 
 
 export const authOptions = { 
   providers: [
