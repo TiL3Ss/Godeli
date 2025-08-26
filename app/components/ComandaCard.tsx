@@ -2,7 +2,11 @@
 'use client';
 
 import { useState } from 'react';
-import {CheckCircleIcon,XCircleIcon,CubeIcon ,UserIcon , ClockIcon,MapPinIcon,PhoneIcon , BoltIcon, CheckBadgeIcon,NoSymbolIcon,QuestionMarkCircleIcon, ChevronDownIcon }  from '@heroicons/react/24/solid';
+import {
+  CheckCircleIcon, XCircleIcon, CubeIcon, UserIcon, ClockIcon, 
+  MapPinIcon, PhoneIcon, BoltIcon, CheckBadgeIcon, NoSymbolIcon, 
+  QuestionMarkCircleIcon, ChevronDownIcon, TruckIcon
+} from '@heroicons/react/24/solid';
 
 interface Comanda {
   id: number;
@@ -14,6 +18,7 @@ interface Comanda {
   comentario_problema?: string;
   created_at: string;
   updated_at: string;
+  disponible?: boolean; // Nueva propiedad para repartidores
   repartidor?: {
     id: number;
     nombre: string;
@@ -35,9 +40,10 @@ interface ComandaCardProps {
   comanda: Comanda;
   esRepartidor?: boolean;
   onEstadoChange: (comandaId: number, estado: string, comentario?: string) => void;
+  onTomarComanda?: (comandaId: number) => void; // Nueva prop para tomar comandas
 }
 
-export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: ComandaCardProps) {
+export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onTomarComanda }: ComandaCardProps) {
   const [showComentario, setShowComentario] = useState(false);
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
@@ -131,18 +137,44 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
     }
   };
 
+  const handleTomarComanda = async () => {
+    if (!onTomarComanda) return;
+    
+    setLoading(true);
+    try {
+      await onTomarComanda(comanda.id);
+    } catch (error) {
+      console.error('Error al tomar comanda:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getAccionesDisponibles = () => {
     if (esRepartidor) {
+      // Si es repartidor y la comanda está disponible (sin asignar)
+      if (comanda.disponible) {
+        return [
+          { 
+            estado: 'tomar', 
+            texto: 'Tomar Comanda', 
+            color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
+            icon: <TruckIcon className="w-4 h-4 text-white" />,
+            action: handleTomarComanda
+          }
+        ];
+      }
+      
+      // Si es repartidor y la comanda ya está asignada
       switch (comanda.estado) {
         case 'activa':
           return [
             { 
               estado: 'en_proceso', 
-              texto: 'Tomar Pedido', 
+              texto: 'Iniciar Entrega', 
               color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
-              icon: (
-                  <BoltIcon className="w-4 h-4 text-white p-0.5" />
-              )
+              icon: <BoltIcon className="w-4 h-4 text-white p-0.5" />,
+              action: () => handleEstadoChange('en_proceso')
             }
           ];
         case 'en_proceso':
@@ -151,23 +183,22 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
               estado: 'completada', 
               texto: 'Completar', 
               color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
-              icon: (
-                <CheckCircleIcon className="w-4 h-4 text-white" />
-              )
+              icon: <CheckCircleIcon className="w-5 h-5 text-white" />,
+              action: () => handleEstadoChange('completada')
             },
             { 
               estado: 'cancelada', 
               texto: 'Cancelar', 
               color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
-              icon: (
-                <XCircleIcon className="w-4 h-4 text-white" />
-              )
+              icon: <XCircleIcon className="w-5 h-5 text-white" />,
+              action: () => handleEstadoChange('cancelada')
             }
           ];
         default:
           return [];
       }
     } else {
+      // Acciones para tienda
       switch (comanda.estado) {
         case 'activa':
           return [
@@ -175,9 +206,8 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
               estado: 'cancelada', 
               texto: 'Cancelar', 
               color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
-              icon: (
-                <XCircleIcon className="w-4 h-4 text-white" />
-              )
+              icon: <XCircleIcon className="w-4 h-4 text-white" />,
+              action: () => handleEstadoChange('cancelada')
             }
           ];
         case 'en_proceso':
@@ -186,17 +216,15 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
               estado: 'completada', 
               texto: 'Completar', 
               color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
-              icon: (
-                <CheckCircleIcon className="w-4 h-4" />
-              )
+              icon: <CheckCircleIcon className="w-7 h-7 text-white" />,
+              action: () => handleEstadoChange('completada')
             },
             { 
               estado: 'cancelada', 
               texto: 'Cancelar', 
               color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
-              icon: (
-                <NoSymbolIcon className="w-4 h-4 text-white" />
-              )
+              icon: <NoSymbolIcon className="w-4 h-4 text-white" />,
+              action: () => handleEstadoChange('cancelada')
             }
           ];
         default:
@@ -208,10 +236,20 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
   const acciones = getAccionesDisponibles();
   const estadoConfig = getEstadoConfig(comanda.estado);
 
+  // Badge para comandas disponibles
+  const DisponibleBadge = () => (
+    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10 ">
+      Disponible
+    </div>
+  );
+
   return (
     <div className="group relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:bg-white/90">
       {/* Borde de estado */}
       <div className={`absolute top-0 left-0 right-0 h-1 ${estadoConfig.color} rounded-t-2xl`}></div>
+      
+      {/* Badge de disponibilidad para repartidores */}
+      {esRepartidor && comanda.disponible && <DisponibleBadge />}
       
       {/* Header */}
       <div className="p-6 pb-4">
@@ -355,7 +393,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
-              className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white/80 backdrop-blur-sm resize-none"
+              className="w-full text-gray-700 px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white/80 backdrop-blur-sm resize-none"
               placeholder="Explica el motivo de la cancelación..."
             />
           </div>
@@ -376,7 +414,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
                   className="flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 border-2 border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 disabled:opacity-50"
                   disabled={loading}
                 >
-                  <XCircleIcon className="w-4 h-4 text-white" />
+                  <XCircleIcon className="w-4 h-4 text-slate-500" />
                   <span>Cancelar</span>
                 </button>
                 <button
@@ -392,7 +430,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange }: C
               acciones.map((accion) => (
                 <button
                   key={accion.estado}
-                  onClick={() => handleEstadoChange(accion.estado)}
+                  onClick={accion.action}
                   disabled={loading}
                   className={`flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-semibold rounded-xl text-white ${accion.color} shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 hover:scale-[1.02]`}
                 >

@@ -1,4 +1,3 @@
-// app/historial/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -161,7 +160,8 @@ export default function HistorialPage() {
         params.append('productos', filtros.productos.join(','));
       }
 
-      const response = await fetch(`/api/historial?${params}`, {
+      // CORRECCIÓN: Usar la API de comandas en lugar de historial que no existe
+      const response = await fetch(`/api/comandas?${params}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -175,7 +175,7 @@ export default function HistorialPage() {
       }
 
       if (data.success) {
-        return data.comandas || [];
+        return data.data || []; // CORRECCIÓN: usar data.data en lugar de data.comandas
       } else {
         throw new Error(data.error || 'Error al obtener historial');
       }
@@ -202,7 +202,8 @@ export default function HistorialPage() {
       }
 
       if (data.success) {
-        return data.productos || [];
+        // CORRECCIÓN: usar data.data en lugar de data.productos
+        return data.data || [];
       } else {
         console.warn('Error al obtener productos:', data.error);
         return [];
@@ -342,6 +343,10 @@ export default function HistorialPage() {
                 </button>
                 <h1 className="text-3xl font-bold text-gray-900">Historial de Comandas</h1>
               </div>
+              {/* Debug info - remover en producción */}
+              <div className="text-sm text-gray-500">
+                Usuario: {userProfile?.tipo} | Tienda: {tiendaId}
+              </div>
             </div>
           </div>
         </header>
@@ -358,6 +363,14 @@ export default function HistorialPage() {
                 </div>
                 <div className="ml-3">
                   <p className="text-sm text-red-800">{error}</p>
+                </div>
+                <div className="ml-auto">
+                  <button
+                    onClick={() => setError('')}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             </div>
@@ -376,7 +389,7 @@ export default function HistorialPage() {
                 <select
                   value={filtros.estado || ''}
                   onChange={(e) => setFiltros(prev => ({ ...prev, estado: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 text-gray-700 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="">Todos</option>
                   <option value="activa">Activa</option>
@@ -393,7 +406,7 @@ export default function HistorialPage() {
                   type="date"
                   value={filtros.fecha || ''}
                   onChange={(e) => setFiltros(prev => ({ ...prev, fecha: e.target.value || undefined }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border text-gray-700 border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
@@ -415,25 +428,29 @@ export default function HistorialPage() {
               
               {showProductFilter && (
                 <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-2">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                    {productos.map((producto) => (
-                      <div key={producto.id} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id={`producto-${producto.id}`}
-                          checked={filtros.productos?.includes(producto.id) || false}
-                          onChange={() => toggleProducto(producto.id)}
-                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                        />
-                        <label
-                          htmlFor={`producto-${producto.id}`}
-                          className="ml-2 text-sm text-gray-900 truncate"
-                        >
-                          {producto.nombre}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
+                  {productos.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-2">No hay productos disponibles</p>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {productos.map((producto) => (
+                        <div key={producto.id} className="flex items-center">
+                          <input
+                            type="checkbox"
+                            id={`producto-${producto.id}`}
+                            checked={filtros.productos?.includes(producto.id) || false}
+                            onChange={() => toggleProducto(producto.id)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                          />
+                          <label
+                            htmlFor={`producto-${producto.id}`}
+                            className="ml-2 text-sm text-gray-900 truncate"
+                          >
+                            {producto.nombre}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -1,4 +1,3 @@
-// components/AgregarComandaModal.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -50,12 +49,21 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
 
   const loadProductos = async () => {
     try {
+      setLoadingProductos(true);
       const response = await fetch(`/api/productos?tienda_id=${tiendaId}`);
+      
       if (response.ok) {
-        const productosData = await response.json();
-        setProductos(productosData);
+        const responseData = await response.json();
+        // La API devuelve los productos en responseData.data según el código
+        if (responseData.success && responseData.data) {
+          setProductos(responseData.data);
+        } else {
+          setProductos([]);
+          setError('No se encontraron productos');
+        }
       } else {
-        setError('Error al cargar productos');
+        const errorData = await response.json();
+        setError(errorData.error || 'Error al cargar productos');
       }
     } catch (error) {
       console.error('Error al cargar productos:', error);
@@ -147,11 +155,13 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
         body: JSON.stringify(comandaData),
       });
 
-      if (response.ok) {
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success) {
         onComandaCreated();
+        onClose(); // Cerrar el modal después de crear exitosamente
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al crear la comanda');
+        setError(responseData.error || 'Error al crear la comanda');
       }
     } catch (error) {
       console.error('Error al crear comanda:', error);
@@ -161,6 +171,18 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
     }
   };
 
+  // Función para manejar el cierre del modal con tecla Escape
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div className="relative top-10 mx-auto p-0 border w-full max-w-4xl shadow-lg rounded-md bg-white mb-10">
@@ -169,6 +191,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
+            disabled={loading}
           >
             <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -179,10 +202,16 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
         {error && (
           <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
             <p className="text-sm text-red-600">{error}</p>
+            <button
+              onClick={() => setError('')}
+              className="mt-2 text-xs text-red-800 underline"
+            >
+              Cerrar
+            </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="p-6 text-gray-700">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Información del cliente */}
             <div className="space-y-4">
@@ -199,6 +228,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
+                  placeholder="Ingrese el nombre del cliente"
                 />
               </div>
 
@@ -212,6 +242,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
+                  placeholder="Opcional"
                 />
               </div>
 
@@ -226,6 +257,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                   onChange={(e) => setFormData(prev => ({ ...prev, cliente_direccion: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   disabled={loading}
+                  placeholder="Ingrese la dirección completa"
                 />
               </div>
 
@@ -234,7 +266,7 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                 <div className="mt-6">
                   <h5 className="text-sm font-medium text-gray-900 mb-3">Resumen del Pedido</h5>
                   <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
                       {productosSeleccionados.map((item) => (
                         <div key={item.producto_id} className="flex justify-between items-center">
                           <div className="flex items-center">
@@ -280,6 +312,14 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
               ) : productos.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No hay productos disponibles</p>
+                  <button
+                    type="button"
+                    onClick={loadProductos}
+                    className="mt-2 text-indigo-600 hover:text-indigo-800 text-sm underline"
+                    disabled={loadingProductos}
+                  >
+                    Recargar productos
+                  </button>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -288,13 +328,13 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
                     return (
                       <div key={producto.id} className="border border-gray-200 rounded-lg p-3">
                         <div className="flex justify-between items-start mb-2">
-                          <div>
+                          <div className="flex-1 mr-4">
                             <h5 className="font-medium text-gray-900">{producto.nombre}</h5>
                             {producto.descripcion && (
-                              <p className="text-sm text-gray-600">{producto.descripcion}</p>
+                              <p className="text-sm text-gray-600 mt-1">{producto.descripcion}</p>
                             )}
                           </div>
-                          <span className="text-lg font-bold text-indigo-600">
+                          <span className="text-lg font-bold text-indigo-600 whitespace-nowrap">
                             ${producto.precio.toFixed(2)}
                           </span>
                         </div>

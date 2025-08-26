@@ -233,12 +233,13 @@ export async function POST(request: NextRequest) {
         INSERT INTO comandas (
           tienda_id, cliente_nombre, cliente_telefono, cliente_direccion, 
           total, estado, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'activa', datetime('now'), datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, 'en_proceso', datetime('now'), datetime('now'))
       `,
       args: [tienda_id, cliente_nombre, cliente_telefono || '', cliente_direccion, total]
     });
 
-    const comandaId = comandaResult.lastInsertRowid;
+    // CORRECCIÓN: Convertir BigInt a Number
+    const comandaId = Number(comandaResult.lastInsertRowid);
 
     // Agregar productos
     for (const item of productosValidos) {
@@ -254,7 +255,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       success: true,
       data: {
-        id: comandaId,
+        id: comandaId, 
         total: total
       },
       message: 'Comanda creada exitosamente' 
