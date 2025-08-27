@@ -42,7 +42,7 @@ export async function PATCH(
 
     // Verificar que la comanda existe
     const comandaResult = await client.execute({
-      sql: 'SELECT id, estado, tienda_id FROM comandas WHERE id = ?',
+      sql: 'SELECT id, estado, tienda_id, repartidor_id FROM comandas WHERE id = ?',
       args: [comandaId]
     });
 
@@ -65,8 +65,8 @@ export async function PATCH(
         );
       }
     } else if (session.user.tipo === 'repartidor') {
-      // Los repartidores solo pueden cambiar a ciertos estados
-      const estadosRepartidor = ['en_proceso', 'completada'];
+      // Los repartidores pueden cambiar a ciertos estados
+      const estadosRepartidor = ['completada', 'cancelada'];
       if (!estadosRepartidor.includes(estado)) {
         return NextResponse.json(
           { success: false, error: 'Estado no permitido para repartidores' }, 
@@ -90,6 +90,40 @@ export async function PATCH(
           { status: 403 }
         );
       }
+
+      // Para repartidores, validar que la comanda esté asignada a ellos
+      if (estado === 'completada' || estado === 'cancelada') {
+        if (!comanda.repartidor_id || Number(comanda.repartidor_id) !== Number(session.user.id)) {
+          return NextResponse.json(
+            { success: false, error: 'Solo puedes modificar comandas asignadas a ti' }, 
+            { status: 403 }
+          );
+        }
+      }
+    }
+
+    // Validar transiciones de estado permitidas
+    const estadoActual = comanda.estado;
+    const transicionesPermitidas = {
+      'en_proceso': ['activa', 'cancelada'], // desde en_proceso puede ir a activa (cuando se asigna repartidor) o cancelada
+      'activa': ['completada', 'cancelada'], // desde activa puede ir a completada o cancelada
+      'completada': [], // estado final
+      'cancelada': [] // estado final
+    };
+
+    if (!transicionesPermitidas[estadoActual]?.includes(estado)) {
+      return NextResponse.json(
+        { success: false, error: `No se puede cambiar de ${estadoActual} a ${estado}` }, 
+        { status: 400 }
+      );
+    }
+
+    // Si se cancela, el comentario es obligatorio
+    if (estado === 'cancelada' && !comentario?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Comentario requerido para cancelación' }, 
+        { status: 400 }
+      );
     }
 
     // Construir query de actualización
@@ -99,12 +133,6 @@ export async function PATCH(
     if (comentario) {
       sql += ', comentario_problema = ?';
       args.push(comentario);
-    }
-
-    // Si se asigna un repartidor al cambiar a 'en_proceso'
-    if (estado === 'en_proceso' && session.user.tipo === 'repartidor') {
-      sql += ', repartidor_id = ?';
-      args.push(session.user.id);
     }
 
     sql += ' WHERE id = ?';

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import {
   CheckCircleIcon, XCircleIcon, CubeIcon, UserIcon, ClockIcon, 
   MapPinIcon, PhoneIcon, BoltIcon, CheckBadgeIcon, NoSymbolIcon, 
-  QuestionMarkCircleIcon, ChevronDownIcon, TruckIcon
+  QuestionMarkCircleIcon, ChevronDownIcon, TruckIcon, ExclamationTriangleIcon
 } from '@heroicons/react/24/solid';
 
 interface Comanda {
@@ -48,6 +48,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
   const [comentario, setComentario] = useState('');
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [accionSeleccionada, setAccionSeleccionada] = useState<string>('');
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('es-ES', {
@@ -120,8 +121,10 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
   };
 
   const handleEstadoChange = async (nuevoEstado: string) => {
-    if (nuevoEstado === 'cancelada' && !showComentario) {
+    // Si es cancelación o entrega fallida, mostrar campo de comentario
+    if ((nuevoEstado === 'cancelada') && !showComentario) {
       setShowComentario(true);
+      setAccionSeleccionada(nuevoEstado);
       return;
     }
 
@@ -130,6 +133,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
       await onEstadoChange(comanda.id, nuevoEstado, comentario || undefined);
       setShowComentario(false);
       setComentario('');
+      setAccionSeleccionada('');
     } catch (error) {
       console.error('Error al cambiar estado:', error);
     } finally {
@@ -170,11 +174,18 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
         case 'activa':
           return [
             { 
-              estado: 'en_proceso', 
-              texto: 'Iniciar Entrega', 
-              color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
-              icon: <BoltIcon className="w-4 h-4 text-white p-0.5" />,
-              action: () => handleEstadoChange('en_proceso')
+              estado: 'completada', 
+              texto: 'Completar Entrega', 
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              icon: <CheckCircleIcon className="w-4 h-4 text-white" />,
+              action: () => handleEstadoChange('completada')
+            },
+            { 
+              estado: 'cancelada', 
+              texto: 'Entrega Fallida', 
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              icon: <ExclamationTriangleIcon className="w-4 h-4 text-white" />,
+              action: () => handleEstadoChange('cancelada')
             }
           ];
         case 'en_proceso':
@@ -385,19 +396,25 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
         </div>
       )}
 
-      {/* Campo de comentario para cancelación */}
+      {/* Campo de comentario para cancelación/entrega fallida */}
       {showComentario && (
         <div className="px-6 pb-4">
           <div className="bg-gradient-to-r from-red-50 to-pink-50 rounded-xl p-4 border border-red-200/60">
             <label className="block text-sm font-bold text-red-800 mb-3">
-              Motivo de cancelación:
+              {accionSeleccionada === 'cancelada' && esRepartidor 
+                ? 'Motivo de entrega fallida:' 
+                : 'Motivo de cancelación:'
+              }
             </label>
             <textarea
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
               className="w-full text-gray-700 px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white/80 backdrop-blur-sm resize-none"
-              placeholder="Explica el motivo de la cancelación..."
+              placeholder={accionSeleccionada === 'cancelada' && esRepartidor 
+                ? 'Explica por qué no se pudo completar la entrega...' 
+                : 'Explica el motivo de la cancelación...'
+              }
             />
           </div>
         </div>
@@ -413,6 +430,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
                   onClick={() => {
                     setShowComentario(false);
                     setComentario('');
+                    setAccionSeleccionada('');
                   }}
                   className="flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 border-2 border-slate-200 text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 disabled:opacity-50"
                   disabled={loading}
@@ -421,7 +439,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
                   <span>Cancelar</span>
                 </button>
                 <button
-                  onClick={() => handleEstadoChange('cancelada')}
+                  onClick={() => handleEstadoChange(accionSeleccionada)}
                   disabled={loading || !comentario.trim()}
                   className="flex-1 min-w-0 flex items-center justify-center space-x-2 px-4 py-3 text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >

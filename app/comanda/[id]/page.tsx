@@ -742,7 +742,7 @@ export default function ComandaDetailPage() {
                   <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-pink-600 rounded-lg flex items-center justify-center shadow-lg">
                     <ExclamationTriangleIcon className="w-5 h-5 text-white" />
                   </div>
-                  <h3 className="text-lg font-semibold text-red-900">Comentarios</h3>
+                  <h3 className="text-lg font-semibold text-red-900">Motivo de cancelación</h3>
                 </div>
                 
                 <div className="bg-white/50 rounded-lg p-4 border border-red-200/50">

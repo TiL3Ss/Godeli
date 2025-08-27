@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Sin acceso a esta tienda' }, { status: 403 });
     }
 
-    // Comandas disponibles
+    // Comandas disponibles - estado 'en_proceso' sin repartidor asignado
     const disponiblesResult = await client.execute({
       sql: `
         SELECT c.*, r.nombre as repartidor_nombre, r.username as repartidor_username
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    // Comandas asignadas
+    // Comandas asignadas - estado 'activa' asignadas a este repartidor
     const asignadasResult = await client.execute({
       sql: `
         SELECT c.*, r.nombre as repartidor_nombre, r.username as repartidor_username
@@ -125,13 +125,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, disponibles, asignadas, data: [...disponibles, ...asignadas] });
 
-
   } catch (error) {
     console.error('Error obteniendo comandas para repartidor:', error);
     return NextResponse.json({ success: false, error: 'Error interno del servidor' }, { status: 500 });
   }
 }
-
 
 // Asignar repartidor a una comanda
 export async function POST(request: NextRequest) {
@@ -205,10 +203,25 @@ export async function POST(request: NextRequest) {
       sql: `
         UPDATE comandas 
         SET repartidor_id = ?, estado = 'activa', updated_at = datetime('now')
-        WHERE id = ? AND repartidor_id IS NULL
+        WHERE id = ? AND repartidor_id IS NULL AND estado = 'en_proceso'
       `,
       args: [session.user.id, comanda_id]
     });
+
+    // Verificar que la actualización fue exitosa
+    const verificacionResult = await client.execute({
+      sql: 'SELECT id, estado, repartidor_id FROM comandas WHERE id = ?',
+      args: [comanda_id]
+    });
+
+    if (verificacionResult.rows.length === 0 || 
+        verificacionResult.rows[0].estado !== 'activa' || 
+        Number(verificacionResult.rows[0].repartidor_id) !== Number(session.user.id)) {
+      return NextResponse.json(
+        { success: false, error: 'Error al asignar comanda, puede que ya esté tomada' },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({ 
       success: true,
