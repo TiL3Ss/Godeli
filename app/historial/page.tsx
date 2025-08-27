@@ -6,7 +6,7 @@ import { useSession, signOut } from 'next-auth/react';
 import {
   ArrowRightEndOnRectangleIcon,
   XCircleIcon,
-  BookOpenIcon,
+  CheckBadgeIcon,
   UserIcon,
   DocumentTextIcon,
   ClockIcon,
@@ -18,7 +18,9 @@ import {
   TruckIcon,
   EyeIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  BoltIcon,
+  NoSymbolIcon
 } from '@heroicons/react/24/solid';
 
 interface Producto {
@@ -487,7 +489,7 @@ export default function HistorialPage() {
             <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 p-4">
               <div className="text-center">
                 <div className="w-8 h-8 bg-green-500 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <BoltIcon className="w-5 h-5 text-white" />
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{stats.activas}</p>
                 <p className="text-xs text-slate-600">Activas</p>
@@ -496,7 +498,7 @@ export default function HistorialPage() {
             <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 p-4">
               <div className="text-center">
                 <div className="w-8 h-8 bg-yellow-500 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <ClockIcon className='w-5 h-5 text-white' />
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{stats.en_proceso}</p>
                 <p className="text-xs text-slate-600">En Proceso</p>
@@ -505,7 +507,7 @@ export default function HistorialPage() {
             <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 p-4">
               <div className="text-center">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <CheckBadgeIcon className="w-5 h-5 text-white" />
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{stats.completadas}</p>
                 <p className="text-xs text-slate-600">Completadas</p>
@@ -514,7 +516,7 @@ export default function HistorialPage() {
             <div className="bg-white/70 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 p-4">
               <div className="text-center">
                 <div className="w-8 h-8 bg-red-500 rounded-lg mx-auto mb-2 flex items-center justify-center">
-                  <div className="w-3 h-3 bg-white rounded-full"></div>
+                  <NoSymbolIcon className="w-5 h-5 text-white" />
                 </div>
                 <p className="text-2xl font-bold text-slate-900">{stats.canceladas}</p>
                 <p className="text-xs text-slate-600">Canceladas</p>

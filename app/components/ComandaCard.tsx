@@ -343,22 +343,25 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
             <div className="bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl p-4 border border-slate-200/50">
               <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center">
                 <CubeIcon className="w-5 h-5 text-slate-700 mr-2" />
-                Productos
+                Productos ({comanda.productos.length})
               </h4>
-              <div className="space-y-2">
-                {comanda.productos.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg shadow-sm border border-slate-100">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
-                        {item.cantidad}
+              {/* Contenedor con scroll */}
+              <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 pr-2">
+                <div className="space-y-2">
+                  {comanda.productos.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between py-2 px-3 bg-white rounded-lg shadow-sm border border-slate-100">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                          {item.cantidad}
+                        </div>
+                        <span className="font-medium text-slate-700">{item.producto.nombre}</span>
                       </div>
-                      <span className="font-medium text-slate-700">{item.producto.nombre}</span>
+                      <span className="font-bold text-slate-900">
+                        ${(item.precio_unitario * item.cantidad).toFixed(2)}
+                      </span>
                     </div>
-                    <span className="font-bold text-slate-900">
-                      ${(item.precio_unitario * item.cantidad).toFixed(2)}
-                    </span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>

@@ -18,6 +18,11 @@ export async function GET(request: NextRequest) {
     const tiendaId = searchParams.get('tienda_id');
     const activas = searchParams.get('activas') === 'true';
     const esRepartidor = searchParams.get('repartidor') === 'true';
+    
+    // Filtros adicionales para historial
+    const estado = searchParams.get('estado');
+    const fecha = searchParams.get('fecha');
+    const productos = searchParams.get('productos');
 
     if (!tiendaId) {
       return NextResponse.json(
@@ -68,47 +73,67 @@ export async function GET(request: NextRequest) {
         c.created_at,
         c.updated_at,
         c.repartidor_id,
-        r.nombre as repartidor_nombre,
-        r.username as repartidor_telefono
+        u.nombre as repartidor_nombre,
+        u.username as repartidor_telefono
       FROM comandas c
-      LEFT JOIN usuarios r ON c.repartidor_id = r.id
+      LEFT JOIN usuarios u ON c.repartidor_id = u.id
       WHERE c.tienda_id = ?
     `;
     
     const args = [tiendaId];
 
+    // Solo filtrar por comandas activas si se especifica explícitamente
     if (activas) {
       sql += " AND c.estado IN ('activa', 'en_proceso')";
     }
 
+    // Filtro por estado específico (para historial)
+    if (estado) {
+      sql += ' AND c.estado = ?';
+      args.push(estado);
+    }
+
+    // Filtro por fecha (para historial)
+    if (fecha) {
+      sql += ' AND DATE(c.created_at) = ?';
+      args.push(fecha);
+    }
+
+    // Para repartidores, solo sus comandas asignadas
     if (esRepartidor) {
-      sql += " AND c.repartidor_id = ?";
+      sql += ' AND c.repartidor_id = ?';
       args.push(session.user.id);
     }
 
-    sql += " ORDER BY c.created_at DESC";
+    // Filtro por productos (para historial)
+    if (productos) {
+      const productosIds = productos.split(',').map(Number).filter(id => !isNaN(id));
+      if (productosIds.length > 0) {
+        const placeholders = productosIds.map(() => '?').join(',');
+        sql += `
+          AND c.id IN (
+            SELECT DISTINCT cp.comanda_id 
+            FROM comanda_productos cp 
+            WHERE cp.producto_id IN (${placeholders})
+          )
+        `;
+        args.push(...productosIds);
+      }
+    }
+
+    sql += ' ORDER BY c.created_at DESC';
+
+    // Limitar resultados solo si no hay filtros específicos aplicados
+    if (!estado && !fecha && !productos) {
+      sql += ' LIMIT 100';
+    }
 
     const result = await client.execute({ sql, args });
 
-    const comandas = result.rows.map(row => ({
-      id: Number(row.id),
-      cliente_nombre: row.cliente_nombre,
-      cliente_telefono: row.cliente_telefono,
-      cliente_direccion: row.cliente_direccion,
-      total: Number(row.total),
-      estado: row.estado,
-      comentario_problema: row.comentario_problema,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      repartidor: row.repartidor_id ? {
-        id: Number(row.repartidor_id),
-        nombre: row.repartidor_nombre,
-        telefono: row.repartidor_telefono
-      } : null
-    }));
-
-    // Obtener productos para cada comanda
-    for (const comanda of comandas) {
+    const comandas = [];
+    
+    for (const row of result.rows) {
+      // Obtener productos para cada comanda
       const productosResult = await client.execute({
         sql: `
           SELECT 
@@ -123,19 +148,35 @@ export async function GET(request: NextRequest) {
           WHERE cp.comanda_id = ?
           ORDER BY cp.id
         `,
-        args: [comanda.id]
+        args: [row.id]
       });
 
-      comanda.productos = productosResult.rows.map(row => ({
+      comandas.push({
         id: Number(row.id),
-        cantidad: Number(row.cantidad),
-        precio_unitario: Number(row.precio_unitario),
-        producto: {
-          id: Number(row.producto_id),
-          nombre: row.producto_nombre,
-          precio: Number(row.producto_precio)
-        }
-      }));
+        cliente_nombre: row.cliente_nombre,
+        cliente_telefono: row.cliente_telefono,
+        cliente_direccion: row.cliente_direccion,
+        total: Number(row.total),
+        estado: row.estado,
+        comentario_problema: row.comentario_problema,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        repartidor: row.repartidor_id ? {
+          id: Number(row.repartidor_id),
+          nombre: row.repartidor_nombre,
+          telefono: row.repartidor_telefono
+        } : null,
+        productos: productosResult.rows.map(prodRow => ({
+          id: Number(prodRow.id),
+          cantidad: Number(prodRow.cantidad),
+          precio_unitario: Number(prodRow.precio_unitario),
+          producto: {
+            id: Number(prodRow.producto_id),
+            nombre: prodRow.producto_nombre,
+            precio: Number(prodRow.producto_precio)
+          }
+        }))
+      });
     }
 
     return NextResponse.json({
