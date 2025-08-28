@@ -1,173 +1,63 @@
 // app/api/admin/usuarios/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { getTursoClient } from '@/lib/turso';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { createClient } from '@libsql/client';
-import bcrypt from 'bcryptjs';
-import { DefaultSession } from 'next-auth';
-
-// Cliente de Turso
-const tursoClient = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
-
-// Constantes para mejor legibilidad
-const SESSION_MAX_AGE = 60 * 60 * 3; // 3 horas en segundos
-const SESSION_UPDATE_AGE = 30 * 60; // 30 minutos en segundos (refresh automático)
-const JWT_EXPIRATION = 3 * 60 * 60 * 1000; // 3 horas en milisegundos (para JWT)
-
-export const authOptions = { 
-  providers: [
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' },
-      },
-      async authorize(credentials: Record<"username" | "password", string> | undefined, req) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error('Faltan credenciales');
-        }
-
-        try {
-          const normalizedUsername = credentials.username.toLowerCase();
-          
-          // Consulta usando Turso con la nueva tabla usuarios - INCLUIR AD
-          const result = await tursoClient.execute({
-            sql: 'SELECT id, username, password, tipo, nombre, AD FROM usuarios WHERE LOWER(username) = ?',
-            args: [normalizedUsername]
-          });
-
-          const user = result.rows[0];
-
-          if (!user) {
-            throw new Error('Credenciales inválidas');
-          }
-
-          const passwordMatch = await bcrypt.compare(credentials.password, user.password as string);
-
-          if (!passwordMatch) {
-            throw new Error('Credenciales inválidas');
-          }
-
-          return {
-            id: user.id.toString(),
-            name: user.nombre as string,
-            username: user.username as string,
-            tipo: user.tipo as string, // 'tienda' o 'repartidor'
-            AD: user.AD as number, // Incluir información de admin
-          };
-        } catch (error) {
-          console.error('Error en autorización:', error);
-          throw new Error('Error de autenticación');
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async jwt({ token, user, account, trigger }: { token: any; user?: any; account?: any; trigger?: string }) {
-      // Si es un nuevo login
-      if (user) {
-        token.id = user.id;
-        token.name = user.name;
-        token.username = user.username;
-        token.tipo = user.tipo;
-        token.AD = user.AD; // Incluir AD en el token
-        token.accessTokenExpires = Date.now() + JWT_EXPIRATION; // 3 horas
-        console.log('JWT: Nuevo login, token expira en:', new Date(token.accessTokenExpires));
-        console.log('JWT: Usuario AD status:', user.AD === 1 ? 'Admin' : 'Usuario regular');
-      }
-      
-      // Si es una actualización manual (cuando se llama session.update())
-      if (trigger === 'update') {
-        console.log('JWT: Extendiendo sesión por update()');
-        token.accessTokenExpires = Date.now() + JWT_EXPIRATION; // Extender 3 horas más
-        console.log('JWT: Nuevo tiempo de expiración:', new Date(token.accessTokenExpires));
-        return token;
-      }
-      
-      // Verificar si el token está próximo a expirar (últimos 30 minutos)
-      if (token.accessTokenExpires && Date.now() > (token.accessTokenExpires - (30 * 60 * 1000))) {
-        console.log('JWT: Token próximo a expirar, refrescando...');
-        token.accessTokenExpires = Date.now() + JWT_EXPIRATION; // Refrescar por 3 horas más
-        return token;
-      }
-      
-      return token;
-    },
+export async function GET(request: NextRequest) {
+  try {
+    // Verificar autenticación y permisos de admin
+    const session = await getServerSession(authOptions);
     
-    async session({ session, token }: { session: any; token: any }) {
-      if (token && session.user) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string;
-        session.user.username = token.username as string;
-        session.user.tipo = token.tipo as string;
-        session.user.AD = token.AD as number; // Incluir AD en la sesión
-        session.accessTokenExpires = token.accessTokenExpires;
-        
-        // Establecer session.expires para compatibilidad estándar
-        if (token.accessTokenExpires) {
-          session.expires = new Date(token.accessTokenExpires).toISOString();
-        }
-      }
-      return session;
-    },
-  },
-  session: {
-    strategy: 'jwt' as const,
-    maxAge: SESSION_MAX_AGE, // 3h en segundos
-    updateAge: SESSION_UPDATE_AGE, // Se actualiza automáticamente cada 30 minutos
-  },
-  jwt: {
-    maxAge: SESSION_MAX_AGE, // 3h en segundos (mismo que la sesión)
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  pages: {
-    signIn: '/', 
-  },
-  events: {
-    async session({ session, token }) {
-      console.log('Session event - Token expires:', token?.accessTokenExpires ? new Date(token.accessTokenExpires) : 'No expiry set');
-      console.log('Usuario tipo:', token?.tipo);
-      console.log('Usuario AD:', token?.AD === 1 ? 'Admin' : 'Usuario regular');
-    },
-  },
-};
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: 'No autenticado' },
+        { status: 401 }
+      );
+    }
 
-const handler = NextAuth(authOptions);
+    // Verificar si el usuario es administrador
+    if (session.user.AD !== 1) {
+      return NextResponse.json(
+        { error: 'Permisos insuficientes. Se requiere rol de administrador.' },
+        { status: 403 }
+      );
+    }
 
-export { handler as GET, handler as POST };
+    const client = getTursoClient();
 
-// Declaraciones de módulos para TypeScript
-declare module 'next-auth' {
-  interface Session {
-    user: {
-      id: string;
-      name: string;
-      username: string;
-      tipo: 'tienda' | 'repartidor';
-      AD: number;
-    } & DefaultSession['user'];
-    accessTokenExpires?: number;
-  }
+    // Obtener todos los usuarios con toda la información necesaria
+    const result = await client.execute({
+      sql: `SELECT 
+              id, 
+              username, 
+              nombre, 
+              tipo, 
+              suscripcion, 
+              AD,
+              created_at
+            FROM usuarios 
+            ORDER BY created_at DESC`
+    });
 
-  interface User {
-    id: string;
-    name: string;
-    username: string;
-    tipo: 'tienda' | 'repartidor';
-    AD: number;
-  }
-}
+    // Transformar los datos para el frontend
+    const usuarios = result.rows.map(row => ({
+      id: Number(row.id),
+      username: String(row.username),
+      nombre: String(row.nombre),
+      tipo: String(row.tipo),
+      suscripcion: Number(row.suscripcion),
+      AD: Number(row.AD),
+      created_at: row.created_at
+    }));
 
-declare module 'next-auth/jwt' {
-  interface JWT {
-    id: string;
-    name: string;
-    username: string;
-    tipo: 'tienda' | 'repartidor';
-    AD: number;
-    accessTokenExpires?: number;
+    return NextResponse.json(usuarios);
+
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error);
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    );
   }
 }
