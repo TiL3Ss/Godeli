@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import ComandaCard from '../components/ComandaCard';
 import AgregarComandaModal from '../components/AgregarComandaModal';
+import LoadingImage from '../components/LoadingImage';
 import {ArrowRightEndOnRectangleIcon ,XCircleIcon,BookOpenIcon ,UserIcon ,DocumentTextIcon, ClockIcon,PlusCircleIcon }  from '@heroicons/react/24/solid';
 
 interface Comanda {
@@ -217,18 +218,13 @@ export default function ComandasPage() {
   // Loading state
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-blue-400 rounded-full animate-pulse mx-auto"></div>
-          </div>
-          <div className="mt-6 space-y-2">
-            <p className="text-lg font-medium text-slate-700">Cargando comandas</p>
-            <p className="text-sm text-slate-500">Preparando tu panel de trabajo...</p>
-          </div>
-        </div>
-      </div>
+    <LoadingImage 
+      title="Cargando comandas"
+      subtitle="Preparando tu panel de trabajo..."
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+    />
     );
   }
 
@@ -271,19 +267,19 @@ export default function ComandasPage() {
             </div>
 
             {/* Botones de acción */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 ">
               <button
                 onClick={() => router.push('/historial')}
-                className="group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
-                <ClockIcon className="w-4 h-4 group-hover:animate-spin" />
+                <ClockIcon className="w-4 h-4 " />
                 <span className="hidden sm:inline">Historial</span>
               </button>
 
               {user.tipo === 'tienda' && (
                 <button
                   onClick={() => setShowModal(true)}
-                  className="group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border border-green-500/30 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                  className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border border-green-500/30 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
                 >
                   <PlusCircleIcon className="w-4 h-4 text-white" />
                   <span className="hidden sm:inline">Nueva</span>
@@ -292,7 +288,7 @@ export default function ComandasPage() {
 
               <button
                 onClick={handleLogout}
-                className="group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                className="group flex cursor-pointer items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
                 <ArrowRightEndOnRectangleIcon className="w-4 h-4 group-hover:animate-pulse" />
                 <span className="hidden sm:inline">Salir</span>

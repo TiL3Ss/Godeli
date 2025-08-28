@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import LoadingImage from '../components/LoadingImage';
 import { BuildingStorefrontIcon, MapPinIcon, PhoneIcon, ClockIcon, InformationCircleIcon,HomeIcon,ArrowRightCircleIcon,ArchiveBoxXMarkIcon} from '@heroicons/react/24/solid';
 
 
@@ -97,20 +98,16 @@ export default function SelectTiendaPage() {
   };
 
   // Loading state
+  
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-blue-400 rounded-full animate-pulse mx-auto"></div>
-          </div>
-          <div className="mt-6 space-y-2">
-            <p className="text-lg font-medium text-slate-700">Cargando tiendas</p>
-            <p className="text-sm text-slate-500">Preparando tu experiencia...</p>
-          </div>
-        </div>
-      </div>
+    <LoadingImage 
+      title="Cargando tiendas"
+      subtitle="Preparando tu experiencia..."
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+    />
     );
   }
 

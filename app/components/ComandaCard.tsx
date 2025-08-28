@@ -162,7 +162,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
           { 
             estado: 'tomar', 
             texto: 'Tomar Comanda', 
-            color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700',
+            color: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 cursor-pointer',
             icon: <TruckIcon className="w-4 h-4 text-white" />,
             action: handleTomarComanda
           }
@@ -176,14 +176,14 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
             { 
               estado: 'completada', 
               texto: 'Completar Entrega', 
-              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 cursor-pointer',
               icon: <CheckCircleIcon className="w-4 h-4 text-white" />,
               action: () => handleEstadoChange('completada')
             },
             { 
               estado: 'cancelada', 
               texto: 'Entrega Fallida', 
-              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 cursor-pointer',
               icon: <ExclamationTriangleIcon className="w-4 h-4 text-white" />,
               action: () => handleEstadoChange('cancelada')
             }
@@ -193,14 +193,14 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
             { 
               estado: 'completada', 
               texto: 'Completar', 
-              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 cursor-pointer',
               icon: <CheckCircleIcon className="w-5 h-5 text-white" />,
               action: () => handleEstadoChange('completada')
             },
             { 
               estado: 'cancelada', 
               texto: 'Cancelar', 
-              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 cursor-pointer',
               icon: <XCircleIcon className="w-5 h-5 text-white" />,
               action: () => handleEstadoChange('cancelada')
             }
@@ -216,7 +216,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
             { 
               estado: 'cancelada', 
               texto: 'Cancelar', 
-              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 cursor-pointer',
               icon: <XCircleIcon className="w-4 h-4 text-white" />,
               action: () => handleEstadoChange('cancelada')
             }
@@ -226,14 +226,14 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
             { 
               estado: 'completada', 
               texto: 'Completar', 
-              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700',
+              color: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 cursor-pointer',
               icon: <CheckCircleIcon className="w-7 h-7 text-white" />,
               action: () => handleEstadoChange('completada')
             },
             { 
               estado: 'cancelada', 
               texto: 'Cancelar', 
-              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700',
+              color: 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 cursor-pointer',
               icon: <NoSymbolIcon className="w-4 h-4 text-white" />,
               action: () => handleEstadoChange('cancelada')
             }
@@ -255,7 +255,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
   );
 
   return (
-    <div className="group relative bg-white/80 backdrop-blur-sm rounded-2xl border border-white/20 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] hover:bg-white/90">
+    <div className="group relative bg-white rounded-2xl border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-500 hover:scale-[1.002] hover:bg-white">
       {/* Borde de estado */}
       <div className={`absolute top-0 left-0 right-0 h-1 ${estadoConfig.color} rounded-t-2xl`}></div>
       
@@ -308,7 +308,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
           </div>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center space-x-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 bg-slate-100/60 hover:bg-slate-200/60 rounded-lg transition-all duration-200"
+            className="cursor-pointer flex items-center space-x-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 bg-slate-200/60 hover:bg-slate-200/60 rounded-lg transition-all duration-200"
           >
             <span>{expanded ? 'Menos detalles' : 'Ver detalles'}</span>
             <ChevronDownIcon className={`w-4 h-4 transform transition-transform duration-300 ${expanded ? 'rotate-180' : 'rotate-0'}`} />
@@ -410,7 +410,7 @@ export default function ComandaCard({ comanda, esRepartidor, onEstadoChange, onT
               value={comentario}
               onChange={(e) => setComentario(e.target.value)}
               rows={3}
-              className="w-full text-gray-700 px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white/80 backdrop-blur-sm resize-none"
+              className="w-full text-gray-700 px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 bg-white  resize-none"
               placeholder={accionSeleccionada === 'cancelada' && esRepartidor 
                 ? 'Explica por qué no se pudo completar la entrega...' 
                 : 'Explica el motivo de la cancelación...'

@@ -4,10 +4,17 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getTursoClient } from '../../../../lib/turso';
 
+// Función para obtener la fecha y hora local en formato ISO UTC-3
+function getLocalDateTime() {
+  const now = new Date();
+  const localTime = new Date(now.getTime() - (3 * 60 * 60 * 1000)); 
+  return localTime.toISOString().replace('T', ' ').slice(0, 19); 
+}
+
 // Actualizar estado de comanda
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +25,9 @@ export async function PATCH(
       );
     }
 
-    const comandaId = params.id;
+    // Await params antes de usar sus propiedades
+    const { id } = await params;
+    const comandaId = id;
     const body = await request.json();
     const { estado, comentario } = body;
 
@@ -125,10 +134,12 @@ export async function PATCH(
         { status: 400 }
       );
     }
+    
+    const localDateTime = getLocalDateTime();
 
-    // Construir query de actualización
-    let sql = 'UPDATE comandas SET estado = ?, updated_at = datetime(\'now\')';
-    const args = [estado];
+    // Construir query de actualización - CORREGIDO
+    let sql = 'UPDATE comandas SET estado = ?, updated_at = ?';
+    const args = [estado, localDateTime];
 
     if (comentario) {
       sql += ', comentario_problema = ?';
@@ -157,7 +168,7 @@ export async function PATCH(
 // Obtener detalles de una comanda específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -168,7 +179,9 @@ export async function GET(
       );
     }
 
-    const comandaId = params.id;
+    // Await params antes de usar sus propiedades
+    const { id } = await params;
+    const comandaId = id;
     const client = getTursoClient();
 
     // Obtener comanda con detalles del repartidor y tienda

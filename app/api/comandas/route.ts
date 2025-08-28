@@ -4,6 +4,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]/route';
 import { getTursoClient } from '../../../lib/turso';
 
+// Función para obtener la fecha y hora local en formato ISO UTC-3
+function getLocalDateTime() {
+  const now = new Date();
+  const localTime = new Date(now.getTime() - (3 * 60 * 60 * 1000)); 
+  return localTime.toISOString().replace('T', ' ').slice(0, 19); 
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -268,15 +275,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Crear comanda
+    // Obtener fecha/hora local
+    const localDateTime = getLocalDateTime();
+
+    // Crear comanda con hora local
     const comandaResult = await client.execute({
       sql: `
         INSERT INTO comandas (
           tienda_id, cliente_nombre, cliente_telefono, cliente_direccion, 
           total, estado, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, 'en_proceso', datetime('now'), datetime('now'))
+        ) VALUES (?, ?, ?, ?, ?, 'en_proceso', ?, ?)
       `,
-      args: [tienda_id, cliente_nombre, cliente_telefono || '', cliente_direccion, total]
+      args: [tienda_id, cliente_nombre, cliente_telefono || '', cliente_direccion, total, localDateTime, localDateTime]
     });
 
     // CORRECCIÓN: Convertir BigInt a Number

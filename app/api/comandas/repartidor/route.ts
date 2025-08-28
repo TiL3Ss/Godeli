@@ -4,6 +4,13 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getTursoClient } from '../../../../lib/turso';
 
+// Función para obtener la fecha y hora local en formato ISO UTC-3
+function getLocalDateTime() {
+  const now = new Date();
+  const localTime = new Date(now.getTime() - (3 * 60 * 60 * 1000)); 
+  return localTime.toISOString().replace('T', ' ').slice(0, 19); 
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -198,14 +205,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Obtener fecha/hora local
+    const localDateTime = getLocalDateTime();
+
     // Asignar repartidor a la comanda y cambiar estado a 'activa'
     await client.execute({
       sql: `
         UPDATE comandas 
-        SET repartidor_id = ?, estado = 'activa', updated_at = datetime('now')
+        SET repartidor_id = ?, estado = 'activa', updated_at = ?
         WHERE id = ? AND repartidor_id IS NULL AND estado = 'en_proceso'
       `,
-      args: [session.user.id, comanda_id]
+      args: [session.user.id, localDateTime, comanda_id]
     });
 
     // Verificar que la actualización fue exitosa

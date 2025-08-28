@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import LoadingImage from '../components/LoadingImage';
 import {
   ArrowRightEndOnRectangleIcon,
   XCircleIcon,
@@ -328,20 +329,15 @@ export default function HistorialPage() {
   };
 
   // Loading state
-  if (status === 'loading' || (loading && !comandas.length)) {
+  if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
-            <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-r-blue-400 rounded-full animate-pulse mx-auto"></div>
-          </div>
-          <div className="mt-6 space-y-2">
-            <p className="text-lg font-medium text-slate-700">Cargando historial</p>
-            <p className="text-sm text-slate-500">Preparando el historial de comandas...</p>
-          </div>
-        </div>
-      </div>
+    <LoadingImage 
+      title="Cargando Comandas"
+      subtitle="Preparando tu panel de trabajo..."
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+    />
     );
   }
 
@@ -364,7 +360,7 @@ export default function HistorialPage() {
             <div className="flex items-center space-x-3">
               <button
                 onClick={() => router.back()}
-                className="group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                className="group cursor-pointer flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
                 <ArrowLeftIcon className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="hidden sm:inline">Volver</span>
@@ -386,7 +382,7 @@ export default function HistorialPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
                 <ClockIcon className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-lg font-semibold text-slate-900 hidden sm:block">
+              <h1 className="text-lg  font-semibold text-slate-900 hidden sm:block">
                 Historial de Comandas
               </h1>
             </div>
@@ -395,7 +391,7 @@ export default function HistorialPage() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleLogout}
-                className="group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                className="group flex cursor-pointer items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
               >
                 <ArrowRightEndOnRectangleIcon className="w-4 h-4 group-hover:animate-pulse" />
                 <span className="hidden sm:inline">Salir</span>
