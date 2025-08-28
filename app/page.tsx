@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
+import LoadingImage from './components/LoadingImage';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -16,12 +17,44 @@ export default function LoginPage() {
 
   useEffect(() => {
     // Redirigir si ya está autenticado
-    if (status === 'authenticated' && session?.user?.tipo) {
-      redirectBasedOnTipo(session.user.tipo);
+    if (status === 'authenticated' && session?.user) {
+      redirectBasedOnUser(session.user);
     }
   }, [status, session, router]);
 
-  // Redirigir según el tipo de usuario
+  // Redirigir según el usuario y sus permisos
+  const redirectBasedOnUser = async (user: any) => {
+    try {
+      // Verificar si el usuario tiene permisos de administrador
+      const response = await fetch('/api/user/check-admin', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.isAdmin) {
+          // Usuario con permisos de admin va al selector de rol
+          router.push('/rol');
+        } else {
+          // Usuario normal va directamente según su tipo
+          redirectBasedOnTipo(user.tipo);
+        }
+      } else {
+        // Si hay error verificando admin, redirigir según tipo normal
+        redirectBasedOnTipo(user.tipo);
+      }
+    } catch (error) {
+      console.error('Error verificando permisos de admin:', error);
+      // En caso de error, redirigir según tipo normal
+      redirectBasedOnTipo(user.tipo);
+    }
+  };
+
+  // Redirigir según el tipo de usuario (función original)
   const redirectBasedOnTipo = (tipo: string) => {
     switch (tipo) {
       case 'tienda':
@@ -55,7 +88,6 @@ export default function LoginPage() {
         redirect: false,
       });
 
-      console.log('Resultado del signIn:', result);
 
       if (result?.error) {
         console.error('Error en signIn:', result.error);
@@ -88,38 +120,43 @@ export default function LoginPage() {
   };
 
   // Función para rellenar credenciales de prueba
-  const fillTestCredentials = (userType: 'tienda' | 'repartidor') => {
+  const fillTestCredentials = (userType: 'tienda' | 'repartidor' | 'admin') => {
     if (userType === 'tienda') {
       setUsername('testTienda');
       setPassword('Test1234');
-    } else {
+    } else if (userType === 'repartidor') {
       setUsername('testRepartidor');
       setPassword('Test1234');
+    } else if (userType === 'admin') {
+      setUsername('admin');
+      setPassword('Admin1234');
     }
   };
 
   // Mostrar loading mientras se verifica la sesión
   if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando sesión...</p>
-        </div>
-      </div>
+   return (
+      <LoadingImage 
+      title="Verficando sesión..."
+      subtitle="espera un momento"
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+    />
     );
   }
 
   // No mostrar el formulario si ya está autenticado
   if (status === 'authenticated') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirigiendo...</p>
-        </div>
-      </div>
-    );
+      <LoadingImage 
+      title="Redirigiendo..."
+      subtitle="espera un momento"
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+    />
+    )
   }
 
   return (
@@ -244,6 +281,7 @@ export default function LoginPage() {
                     Usar
                   </button>
                 </div>
+                
               </div>
             </div>
           </div>

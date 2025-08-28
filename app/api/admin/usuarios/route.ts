@@ -1,3 +1,5 @@
+// app/api/admin/usuarios/route.ts
+
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { createClient } from '@libsql/client';

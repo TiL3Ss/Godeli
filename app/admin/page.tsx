@@ -1,220 +1,375 @@
-// app/page.tsx
+
+// app/admin/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import LoadingImage from '../components/LoadingImage';
+import {
+  MagnifyingGlassIcon as Search,
+  UsersIcon as Users,
+  Cog6ToothIcon as Settings,
+  ShieldCheckIcon as Shield,
+  CreditCardIcon as CreditCard,
+  EllipsisVerticalIcon as MoreVertical,
+  CheckIcon as Check,
+  XMarkIcon as X,
+  ExclamationTriangleIcon as AlertCircle,
+  ArrowPathIcon as Loader2
+} from '@heroicons/react/24/solid';
 
-export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const router = useRouter();
-  const { data: session, status } = useSession();
+const AdminPanel = () => {
+  const [usuarios, setUsuarios] = useState([]);
+  const [filtroTexto, setFiltroTexto] = useState('');
+  const [filtroSuscripcion, setFiltroSuscripcion] = useState('todos');
+  const [filtroAdmin, setFiltroAdmin] = useState('todos');
+  const [cargando, setCargando] = useState(false);
+  const [cargandoInicial, setCargandoInicial] = useState(true);
+  const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
 
+  // Cargar usuarios al montar el componente
   useEffect(() => {
-    // Redirigir si ya está autenticado
-    if (status === 'authenticated' && session?.user?.tipo) {
-      redirectBasedOnTipo(session.user.tipo);
-    }
-  }, [status, session, router]);
+    cargarUsuarios();
+  }, []);
 
-  // Redirigir según el tipo de usuario
-  const redirectBasedOnTipo = (tipo: string) => {
-    switch (tipo) {
-      case 'tienda':
-        router.push('/select-tienda');
-        break;
-      case 'repartidor':
-        router.push('/select-tienda');
-        break;
-      default:
-        router.push('/select-tienda');
+  const cargarUsuarios = async () => {
+    setCargandoInicial(true);
+    try {
+      const response = await fetch('/api/admin/usuarios');
+      if (!response.ok) {
+        throw new Error('Error al cargar usuarios');
+      }
+      const data = await response.json();
+      setUsuarios(data);
+    } catch (error) {
+      setMensaje({ 
+        tipo: 'error', 
+        texto: 'Error al cargar los usuarios: ' + error.message 
+      });
+    } finally {
+      setCargandoInicial(false);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  // Filtrar usuarios
+  const usuariosFiltrados = usuarios.filter(usuario => {
+    const coincideTexto = usuario.nombre.toLowerCase().includes(filtroTexto.toLowerCase()) || 
+                         usuario.username.toLowerCase().includes(filtroTexto.toLowerCase());
+    
+    const coincideSuscripcion = filtroSuscripcion === 'todos' || 
+                               (filtroSuscripcion === 'activa' && usuario.suscripcion === 1) ||
+                               (filtroSuscripcion === 'inactiva' && usuario.suscripcion === 0);
+    
+    const coincideAdmin = filtroAdmin === 'todos' ||
+                         (filtroAdmin === 'admin' && usuario.AD === 1) ||
+                         (filtroAdmin === 'usuario' && usuario.AD === 0);
+    
+    return coincideTexto && coincideSuscripcion && coincideAdmin;
+  });
 
-    if (!username.trim() || !password.trim()) {
-      setError('Por favor ingresa usuario y contraseña');
-      setLoading(false);
-      return;
-    }
-
+  // Función para cambiar estado de suscripción
+  const cambiarSuscripcion = async (id, nuevoEstado) => {
+    setCargando(true);
     try {
-      console.log('Intentando login con:', username.trim());
-      
-      const result = await signIn('credentials', {
-        username: username.trim(),
-        password: password,
-        redirect: false,
+      const response = await fetch(`/api/admin/usuarios/${id}/suscripcion`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ suscripcion: nuevoEstado ? 1 : 0 }),
       });
 
-      console.log('Resultado del signIn:', result);
-
-      if (result?.error) {
-        console.error('Error en signIn:', result.error);
-        
-        switch (result.error) {
-          case 'CredentialsSignin':
-            setError('Usuario o contraseña incorrectos');
-            break;
-          case 'AccessDenied':
-            setError('Acceso denegado');
-            break;
-          case 'Verification':
-            setError('Error de verificación');
-            break;
-          default:
-            setError('Error al iniciar sesión. Inténtalo de nuevo.');
-        }
-      } else if (result?.ok) {
-        console.log('Login exitoso, esperando redirección...');
-        // NextAuth actualizará automáticamente la sesión
-      } else {
-        setError('Error inesperado al iniciar sesión');
+      if (!response.ok) {
+        throw new Error('Error al actualizar suscripción');
       }
-    } catch (err: any) {
-      console.error('Excepción durante login:', err);
-      setError('Error de conexión. Verifica tu conexión a internet.');
+      
+      setUsuarios(prev => prev.map(u => 
+        u.id === id ? { ...u, suscripcion: nuevoEstado ? 1 : 0 } : u
+      ));
+      
+      setMensaje({ 
+        tipo: 'exito', 
+        texto: `Suscripción ${nuevoEstado ? 'activada' : 'desactivada'} correctamente` 
+      });
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error.message });
     } finally {
-      setLoading(false);
+      setCargando(false);
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
     }
   };
 
-  // Función para rellenar credenciales de prueba
-  const fillTestCredentials = (userType: 'tienda' | 'repartidor') => {
-    if (userType === 'tienda') {
-      setUsername('testTienda');
-      setPassword('Test1234');
-    } else {
-      setUsername('testRepartidor');
-      setPassword('Test1234');
+  // Función para cambiar permisos de administrador
+  const cambiarAdmin = async (id, nuevoEstado) => {
+    setCargando(true);
+    try {
+      const response = await fetch(`/api/admin/usuarios/${id}/admin`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ AD: nuevoEstado ? 1 : 0 }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al actualizar permisos de administrador');
+      }
+      
+      setUsuarios(prev => prev.map(u => 
+        u.id === id ? { ...u, AD: nuevoEstado ? 1 : 0 } : u
+      ));
+      
+      setMensaje({ 
+        tipo: 'exito', 
+        texto: `Permisos de administrador ${nuevoEstado ? 'otorgados' : 'revocados'} correctamente` 
+      });
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error.message });
+    } finally {
+      setCargando(false);
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
     }
   };
 
-  // Mostrar loading mientras se verifica la sesión
-  if (status === 'loading') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Verificando sesión...</p>
-        </div>
-      </div>
-    );
-  }
+  const estadisticas = {
+    total: usuarios.length,
+    suscritos: usuarios.filter(u => u.suscripcion === 1).length,
+    administradores: usuarios.filter(u => u.AD === 1).length,
+    tiendas: usuarios.filter(u => u.tipo === 'tienda').length,
+    repartidores: usuarios.filter(u => u.tipo === 'repartidor').length
+  };
 
-  // No mostrar el formulario si ya está autenticado
-  if (status === 'authenticated') {
+  // Mostrar loading inicial
+  if (cargandoInicial) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirigiendo...</p>
-        </div>
-      </div>
+      <LoadingImage 
+        title="Cargando panel de administración" 
+        subtitle="Obteniendo datos de usuarios..." 
+        size="lg"
+        color="#2563eb"
+      />
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="mx-auto h-24 w-24 flex items-center justify-center rounded-full bg-indigo-100">
-            <Image src="/images/go_sf.png" alt="Logo" width={100} height={100} className=""/>
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 bg-blue-600 rounded-lg">
+            <Settings className="w-6 h-6 text-white" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            ADMIN PANEL
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Ingresa tu usuario y contraseña
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Panel de Administración</h1>
+        </div>
+        <p className="text-gray-600">Gestiona suscripciones y permisos de administrador</p>
+      </div>
+
+      {/* Mensaje de estado */}
+      {mensaje.texto && (
+        <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${
+          mensaje.tipo === 'exito' 
+            ? 'bg-green-50 border border-green-200 text-green-800' 
+            : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {mensaje.tipo === 'exito' ? (
+            <Check className="w-5 h-5" />
+          ) : (
+            <AlertCircle className="w-5 h-5" />
+          )}
+          <span className="font-medium">{mensaje.texto}</span>
+        </div>
+      )}
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Total Usuarios</p>
+              <p className="text-2xl font-bold text-gray-900">{estadisticas.total}</p>
+            </div>
+            <Users className="w-8 h-8 text-gray-400" />
+          </div>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
             <div>
-              <label htmlFor="username" className="sr-only">
-                Usuario
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                autoComplete="username"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Usuario"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={loading}
-              />
+              <p className="text-sm font-medium text-gray-600">Suscripciones</p>
+              <p className="text-2xl font-bold text-green-600">{estadisticas.suscritos}</p>
             </div>
+            <CreditCard className="w-8 h-8 text-green-400" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
             <div>
-              <label htmlFor="password" className="sr-only">
-                Contraseña
-              </label>
+              <p className="text-sm font-medium text-gray-600">Administradores</p>
+              <p className="text-2xl font-bold text-blue-600">{estadisticas.administradores}</p>
+            </div>
+            <Shield className="w-8 h-8 text-blue-400" />
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Tiendas</p>
+              <p className="text-2xl font-bold text-purple-600">{estadisticas.tiendas}</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+              <span className="text-purple-600 text-xs font-bold">T</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Repartidores</p>
+              <p className="text-2xl font-bold text-orange-600">{estadisticas.repartidores}</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+              <span className="text-orange-600 text-xs font-bold">R</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6 text-gray-700">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Filtros</h3>
+        
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Búsqueda */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                autoComplete="current-password"
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Contraseña"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
+                type="text"
+                placeholder="Buscar por nombre o username..."
+                value={filtroTexto}
+                onChange={(e) => setFiltroTexto(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
               />
             </div>
           </div>
+          
+          {/* Filtro Suscripción */}
+          <select
+            value={filtroSuscripcion}
+            onChange={(e) => setFiltroSuscripcion(e.target.value)}
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+          >
+            <option value="todos">Todas las suscripciones</option>
+            <option value="activa">Suscripción activa</option>
+            <option value="inactiva">Suscripción inactiva</option>
+          </select>
+          
+          {/* Filtro Admin */}
+          <select
+            value={filtroAdmin}
+            onChange={(e) => setFiltroAdmin(e.target.value)}
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+          >
+            <option value="todos">Todos los roles</option>
+            <option value="admin">Solo administradores</option>
+            <option value="usuario">Solo usuarios</option>
+          </select>
+        </div>
+      </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+      {/* Lista de usuarios */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Usuarios ({usuariosFiltrados.length})
+          </h3>
+        </div>
+        
+        <div className="overflow-x-auto">
+          {usuariosFiltrados.length === 0 ? (
+            <div className="p-12 text-center">
+              <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No se encontraron usuarios</h3>
+              <p className="text-gray-500">Prueba ajustando los filtros de búsqueda</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {usuariosFiltrados.map((usuario) => (
+                <div key={usuario.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Info del usuario */}
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-blue-700 font-semibold">
+                          {usuario.nombre.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{usuario.nombre}</h4>
+                        <p className="text-gray-500 text-sm">@{usuario.username}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            usuario.tipo === 'tienda' 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {usuario.tipo === 'tienda' ? 'Tienda' : 'Repartidor'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Controles */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      {/* Toggle Suscripción */}
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm">
+                          <CreditCard className="w-4 h-4 text-gray-600" />
+                          <span className="font-medium text-gray-700">Suscripción</span>
+                        </div>
+                        <button
+                          onClick={() => cambiarSuscripcion(usuario.id, usuario.suscripcion === 0)}
+                          disabled={cargando}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            usuario.suscripcion === 1 ? 'bg-green-600' : 'bg-gray-300'
+                          } ${cargando ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            usuario.suscripcion === 1 ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
+                        </button>
+                      </div>
+                      
+                      {/* Toggle Admin */}
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Shield className="w-4 h-4 text-gray-600" />
+                          <span className="font-medium text-gray-700">Admin</span>
+                        </div>
+                        <button
+                          onClick={() => cambiarAdmin(usuario.id, usuario.AD === 0)}
+                          disabled={cargando}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                            usuario.AD === 1 ? 'bg-blue-600' : 'bg-gray-300'
+                          } ${cargando ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            usuario.AD === 1 ? 'translate-x-6' : 'translate-x-1'
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    {error}
-                  </h3>
-                </div>
-              </div>
+              ))}
             </div>
           )}
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Iniciando sesión...
-                </>
-              ) : (
-                'Iniciar Sesión'
-              )}
-            </button>
-          </div>
-
-          
-        </form>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default AdminPanel;
