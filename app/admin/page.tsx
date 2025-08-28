@@ -1,8 +1,9 @@
-
 // app/admin/page.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import LoadingImage from '../components/LoadingImage';
 import {
   MagnifyingGlassIcon as Search,
@@ -14,10 +15,14 @@ import {
   CheckIcon as Check,
   XMarkIcon as X,
   ExclamationTriangleIcon as AlertCircle,
-  ArrowPathIcon as Loader2
+  ArrowPathIcon as Loader2,
+  ArrowRightOnRectangleIcon as LogOut,
+  UserPlusIcon as UserPlus,
+  ArrowsRightLeftIcon as SwitchHorizontal
 } from '@heroicons/react/24/solid';
 
 const AdminPanel = () => {
+  const router = useRouter();
   const [usuarios, setUsuarios] = useState([]);
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroSuscripcion, setFiltroSuscripcion] = useState('todos');
@@ -25,6 +30,15 @@ const AdminPanel = () => {
   const [cargando, setCargando] = useState(false);
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
+  const [mostrarModalAgregarUsuario, setMostrarModalAgregarUsuario] = useState(false);
+  const [nuevoUsuario, setNuevoUsuario] = useState({
+    username: '',
+    password: '',
+    tipo: 'tienda',
+    nombre: '',
+    suscripcion: 0,
+    AD: 0
+  });
 
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -47,6 +61,70 @@ const AdminPanel = () => {
       });
     } finally {
       setCargandoInicial(false);
+    }
+  };
+
+  // Cerrar sesión
+  const handleCerrarSesion = async () => {
+    await signOut({ callbackUrl: '/' });
+  };
+
+  // Ir al panel de cambio de rol
+  const handleCambiarRol = () => {
+    router.push('/rol');
+  };
+
+  // Agregar nuevo usuario
+  const handleAgregarUsuario = async (e) => {
+    e.preventDefault();
+    
+    if (!nuevoUsuario.username || !nuevoUsuario.password || !nuevoUsuario.nombre) {
+      setMensaje({ 
+        tipo: 'error', 
+        texto: 'Por favor completa todos los campos requeridos' 
+      });
+      return;
+    }
+
+    setCargando(true);
+    try {
+      const response = await fetch('/api/admin/usuarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(nuevoUsuario),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al crear usuario');
+      }
+
+      // Agregar usuario a la lista local
+      setUsuarios(prev => [...prev, data.data]);
+      
+      // Limpiar formulario
+      setNuevoUsuario({
+        username: '',
+        password: '',
+        tipo: 'tienda',
+        nombre: '',
+        suscripcion: 0,
+        AD: 0
+      });
+      
+      setMostrarModalAgregarUsuario(false);
+      setMensaje({ 
+        tipo: 'exito', 
+        texto: 'Usuario creado exitosamente' 
+      });
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error.message });
+    } finally {
+      setCargando(false);
+      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
     }
   };
 
@@ -154,14 +232,205 @@ const AdminPanel = () => {
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-blue-600 rounded-lg">
-            <Settings className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between">
+          {/* Título */}
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-lg">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Panel de Administración</h1>
+              <p className="text-gray-600">Gestiona suscripciones y permisos de administrador</p>
+            </div>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">Panel de Administración</h1>
+
+          {/* Botones de acción */}
+        <div className="flex items-center gap-3">
+          {/* Botón Agregar Usuario */}
+            <button
+              onClick={() => setMostrarModalAgregarUsuario(true)}
+              className="cursor-pointer w-12 h-12 flex items-center justify-center bg-green-600 active:bg-green-700 hover:bg-green-800 text-white rounded-full transition-colors shadow-md"
+            >
+              <UserPlus className="w-5 h-5" />
+            </button>
+
+            {/* Botón Cambiar Rol */}
+            <button
+              onClick={handleCambiarRol}
+              className="cursor-pointer w-12 h-12 flex items-center justify-center bg-purple-600 active:bg-purple-700 hover:bg-purple-700 text-white rounded-full transition-colors shadow-md"
+            >
+              <SwitchHorizontal className="w-5 h-5 " />
+            </button>
+
+            {/* Botón Cerrar Sesión */}
+            <button
+              onClick={handleCerrarSesion}
+              className="cursor-pointer w-12 h-12 flex items-center justify-center bg-red-600 active:bg-red-700 hover:bg-red-800 text-white rounded-full transition-colors shadow-md"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+
+
+
         </div>
-        <p className="text-gray-600">Gestiona suscripciones y permisos de administrador</p>
       </div>
+
+      {/* Modal para agregar usuario */}
+      {mostrarModalAgregarUsuario && (
+        <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl p-8 w-full max-w-md border border-white/40">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800">Agregar Nuevo Usuario</h3>
+              <button
+                onClick={() => setMostrarModalAgregarUsuario(false)}
+                className="p-2 hover:bg-gray-200/50 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAgregarUsuario} className="space-y-5 text-gray-700">
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username *
+                </label>
+                <input
+                  type="text"
+                  value={nuevoUsuario.username}
+                  onChange={(e) =>
+                    setNuevoUsuario({ ...nuevoUsuario, username: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña *
+                </label>
+                <input
+                  type="password"
+                  value={nuevoUsuario.password}
+                  onChange={(e) =>
+                    setNuevoUsuario({ ...nuevoUsuario, password: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  required
+                />
+              </div>
+
+              {/* Nombre */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  value={nuevoUsuario.nombre}
+                  onChange={(e) =>
+                    setNuevoUsuario({ ...nuevoUsuario, nombre: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  required
+                />
+              </div>
+
+              {/* Tipo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Usuario *
+                </label>
+                <select
+                  value={nuevoUsuario.tipo}
+                  onChange={(e) =>
+                    setNuevoUsuario({ ...nuevoUsuario, tipo: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                >
+                  <option value="tienda">Tienda</option>
+                  <option value="repartidor">Repartidor</option>
+                </select>
+              </div>
+
+              {/* Suscripción */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">
+                  Suscripción
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={nuevoUsuario.suscripcion === 1}
+                    onChange={(e) =>
+                      setNuevoUsuario({
+                        ...nuevoUsuario,
+                        suscripcion: e.target.checked ? 1 : 0,
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </label>
+              </div>
+
+              {/* Admin */}
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">
+                  Permisos de administrador
+                </span>
+                <label className="relative inline-flex items-center cursor-pointer ">
+                  <input
+                    type="checkbox"
+                    checked={nuevoUsuario.AD === 1}
+                    onChange={(e) =>
+                      setNuevoUsuario({
+                        ...nuevoUsuario,
+                        AD: e.target.checked ? 1 : 0,
+                      })
+                    }
+                    className="sr-only peer "
+                  />
+                  <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
+                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </label>
+              </div>
+
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setMostrarModalAgregarUsuario(false)}
+                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-100/70 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={cargando}
+                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {cargando ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    "Crear Usuario"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      )}
 
       {/* Mensaje de estado */}
       {mensaje.texto && (

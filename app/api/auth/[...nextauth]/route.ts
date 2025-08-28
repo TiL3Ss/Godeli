@@ -1,3 +1,4 @@
+// app/api/auth/[...nextauth]/route.ts
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { createClient } from '@libsql/client';
@@ -31,9 +32,9 @@ export const authOptions = {
         try {
           const normalizedUsername = credentials.username.toLowerCase();
           
-          // Consulta usando Turso con la nueva tabla usuarios - INCLUIR AD
+          // Consulta usando Turso con la nueva tabla usuarios - INCLUIR AD y suscripcion
           const result = await tursoClient.execute({
-            sql: 'SELECT id, username, password, tipo, nombre, AD FROM usuarios WHERE LOWER(username) = ?',
+            sql: 'SELECT id, username, password, tipo, nombre, AD, suscripcion FROM usuarios WHERE LOWER(username) = ?',
             args: [normalizedUsername]
           });
 
@@ -55,6 +56,7 @@ export const authOptions = {
             username: user.username as string,
             tipo: user.tipo as string, // 'tienda' o 'repartidor'
             AD: user.AD as number, // Incluir información de admin
+            suscripcion: user.suscripcion as number, // Incluir información de suscripción
           };
         } catch (error) {
           console.error('Error en autorización:', error);
@@ -72,9 +74,11 @@ export const authOptions = {
         token.username = user.username;
         token.tipo = user.tipo;
         token.AD = user.AD; // Incluir AD en el token
+        token.suscripcion = user.suscripcion; // Incluir suscripcion en el token
         token.accessTokenExpires = Date.now() + JWT_EXPIRATION; // 3 horas
         console.log('JWT: Nuevo login, token expira en:', new Date(token.accessTokenExpires));
         console.log('JWT: Usuario AD status:', user.AD === 1 ? 'Admin' : 'Usuario regular');
+        console.log('JWT: Usuario suscripción:', user.suscripcion === 1 ? 'Activa' : 'Inactiva');
       }
       
       // Si es una actualización manual (cuando se llama session.update())
@@ -102,6 +106,7 @@ export const authOptions = {
         session.user.username = token.username as string;
         session.user.tipo = token.tipo as string;
         session.user.AD = token.AD as number; // Incluir AD en la sesión
+        session.user.suscripcion = token.suscripcion as number; // Incluir suscripcion en la sesión
         session.accessTokenExpires = token.accessTokenExpires;
         
         // Establecer session.expires para compatibilidad estándar
@@ -118,7 +123,7 @@ export const authOptions = {
     updateAge: SESSION_UPDATE_AGE, // Se actualiza automáticamente cada 30 minutos
   },
   jwt: {
-    maxAge: SESSION_MAX_AGE, // 3h en segundos (mismo que la sesión)
+    maxAge: SESSION_MAX_AGE, // 3h 
   },
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
@@ -127,8 +132,7 @@ export const authOptions = {
   events: {
     async session({ session, token }) {
       console.log('Session event - Token expires:', token?.accessTokenExpires ? new Date(token.accessTokenExpires) : 'No expiry set');
-      console.log('Usuario tipo:', token?.tipo);
-      console.log('Usuario AD:', token?.AD === 1 ? 'Admin' : 'Usuario regular');
+      
     },
   },
 };
@@ -146,6 +150,7 @@ declare module 'next-auth' {
       username: string;
       tipo: 'tienda' | 'repartidor';
       AD: number;
+      suscripcion: number;
     } & DefaultSession['user'];
     accessTokenExpires?: number;
   }
@@ -156,6 +161,7 @@ declare module 'next-auth' {
     username: string;
     tipo: 'tienda' | 'repartidor';
     AD: number;
+    suscripcion: number;
   }
 }
 
@@ -166,6 +172,7 @@ declare module 'next-auth/jwt' {
     username: string;
     tipo: 'tienda' | 'repartidor';
     AD: number;
+    suscripcion: number;
     accessTokenExpires?: number;
   }
 }
