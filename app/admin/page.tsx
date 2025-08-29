@@ -27,6 +27,7 @@ const AdminPanel = () => {
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroSuscripcion, setFiltroSuscripcion] = useState('todos');
   const [filtroAdmin, setFiltroAdmin] = useState('todos');
+  const [filtroRepartidor, setFiltroRepartidor] = useState('todos');
   const [cargando, setCargando] = useState(false);
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
@@ -140,8 +141,12 @@ const AdminPanel = () => {
     const coincideAdmin = filtroAdmin === 'todos' ||
                          (filtroAdmin === 'admin' && usuario.AD === 1) ||
                          (filtroAdmin === 'usuario' && usuario.AD === 0);
+
+    const TypeRepartidor = filtroRepartidor === 'todos' ||
+                          (filtroRepartidor === 'repartidor' && usuario.tipo === 'repartidor') ||
+                          (filtroRepartidor === 'tienda' && usuario.tipo === 'tienda');                         
     
-    return coincideTexto && coincideSuscripcion && coincideAdmin;
+    return coincideTexto && coincideSuscripcion &&  TypeRepartidor && coincideAdmin;
   });
 
   // Función para cambiar estado de suscripción
@@ -545,6 +550,17 @@ const AdminPanel = () => {
             <option value="admin">Solo administradores</option>
             <option value="usuario">Solo usuarios</option>
           </select>
+          {/* Filtro Tipo */}
+          <select
+            value={filtroRepartidor}
+            onChange={(e) => setFiltroRepartidor(e.target.value)}
+            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+          >
+            <option value="todos">Todos los tipos</option>
+            <option value="tienda">Solo tiendas</option>
+            <option value="repartidor">Solo repartidores</option>
+          </select>
+
         </div>
       </div>
 
