@@ -9,7 +9,6 @@ import bcrypt from 'bcryptjs';
   return this.toString();
 };
 
-
 // Obtener todos los usuarios (solo para administradores)
 export async function GET(request: NextRequest) {
   try {

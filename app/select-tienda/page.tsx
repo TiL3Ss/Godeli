@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import LoadingImage from '../components/LoadingImage';
-import { BuildingStorefrontIcon, MapPinIcon, PhoneIcon, ClockIcon, InformationCircleIcon,HomeIcon,ArrowRightCircleIcon,ArchiveBoxXMarkIcon} from '@heroicons/react/24/solid';
+import { BuildingStorefrontIcon, MapPinIcon,ArrowsRightLeftIcon, PhoneIcon, ClockIcon, InformationCircleIcon,HomeIcon,ArrowRightCircleIcon,ArchiveBoxXMarkIcon} from '@heroicons/react/24/solid';
 
 
 interface Tienda {
@@ -111,6 +111,10 @@ export default function SelectTiendaPage() {
     );
   }
 
+  const handleCambiarRol = () => {
+    router.push('/rol');
+  };
+
   // Not authenticated
   if (status === 'unauthenticated' || !session?.user) {
     return null;
@@ -135,6 +139,13 @@ export default function SelectTiendaPage() {
                 <p className="text-sm font-medium text-slate-900">{user.name || user.username}</p>
                 <p className="text-xs text-slate-500 capitalize">{user.tipo}</p>
               </div>
+              {/* boton return to rol */}
+              <button
+              onClick={handleCambiarRol}
+              className="cursor-pointer w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 transition-colors duration-300"
+            >
+              <ArrowsRightLeftIcon className="w-5 h-5 " />
+            </button>
             </div>
 
             {/* Título centrado */}

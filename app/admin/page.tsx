@@ -18,6 +18,7 @@ import {
   ArrowPathIcon as Loader2,
   ArrowRightOnRectangleIcon as LogOut,
   UserPlusIcon as UserPlus,
+  PencilSquareIcon as Edit,
   ArrowsRightLeftIcon as SwitchHorizontal
 } from '@heroicons/react/24/solid';
 
@@ -361,6 +362,7 @@ const AdminPanel = () => {
                   <option value="repartidor">Repartidor</option>
                 </select>
               </div>
+              
 
               {/* Suscripción */}
               <div className="flex items-center justify-between">
@@ -608,6 +610,11 @@ const AdminPanel = () => {
                     
                     {/* Controles */}
                     <div className="flex flex-col sm:flex-row gap-3">
+                      {/* change datos de usuario */}
+                      <div className="flex items-center justify-between">
+                        <Edit className="w-5 h-5 text-blue-700 cursor-pointer" />
+                      </div>
+
                       {/* Toggle Suscripción */}
                       <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2 text-sm">

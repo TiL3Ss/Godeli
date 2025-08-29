@@ -103,7 +103,9 @@ export default function RolPage() {
                 <h3 className="text-gray-800 font-medium">Usuario Repartidor</h3>
                 <p className="text-gray-600 text-sm">Gestión de entregas</p>
               </div>
-              
+               <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </div>
           </Link>
         </div>
@@ -113,7 +115,7 @@ export default function RolPage() {
           <div className="mt-8">
             <button
               onClick={handleLogout}
-              className="w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all duration-300 group"
+              className="cursor-pointer w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-red-50 hover:border-red-300 transition-all duration-300 group"
             >
               <div className="flex items-center justify-center space-x-3">
                 <svg className="w-5 h-5 text-gray-500 group-hover:text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,9 +130,6 @@ export default function RolPage() {
         {/* Windows 11 Style Footer */}
         <div className="mt-8 text-center">
           <div className="flex items-center justify-center space-x-4 text-gray-500 text-xs">
-            <button className="hover:text-gray-700 transition-colors">Términos de uso</button>
-            <span>•</span>
-            <button className="hover:text-gray-700 transition-colors">Privacidad</button>
           </div>
         </div>
       </div>
