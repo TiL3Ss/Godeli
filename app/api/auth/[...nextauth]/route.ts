@@ -83,7 +83,30 @@ export const authOptions = {
       
       // Si es una actualización manual (cuando se llama session.update())
       if (trigger === 'update') {
-        console.log('JWT: Extendiendo sesión por update()');
+        console.log('JWT: Actualizando token por trigger update');
+        
+        try {
+          // Obtener datos frescos de la base de datos
+          const result = await tursoClient.execute({
+            sql: 'SELECT id, username, tipo, nombre, AD, suscripcion FROM usuarios WHERE id = ?',
+            args: [token.id]
+          });
+          
+          if (result.rows.length > 0) {
+            const userData = result.rows[0];
+            token.tipo = userData.tipo as string;
+            token.name = userData.nombre as string;
+            token.username = userData.username as string;
+            token.AD = userData.AD as number;
+            token.suscripcion = userData.suscripcion as number;
+            
+            console.log('JWT: Datos actualizados desde BD - Nuevo tipo:', userData.tipo);
+            console.log('JWT: AD status actualizado:', userData.AD === 1 ? 'Admin' : 'Usuario regular');
+          }
+        } catch (error) {
+          console.error('JWT: Error al obtener datos frescos:', error);
+        }
+        
         token.accessTokenExpires = Date.now() + JWT_EXPIRATION; // Extender 3 horas más
         console.log('JWT: Nuevo tiempo de expiración:', new Date(token.accessTokenExpires));
         return token;
