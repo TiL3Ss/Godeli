@@ -3,14 +3,16 @@
 
 import Link from "next/link";
 import { useState, useEffect } from 'react';
+import LoadingImage from "../components/LoadingImage";
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { TruckIcon } from "@heroicons/react/24/solid";
 
 export default function RolPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [changingRole, setChangingRole] = useState<'tienda' | 'repartidor' | null>(null);
 
   useEffect(() => {
     const fetchAdminStatus = async () => {
@@ -29,17 +31,17 @@ export default function RolPage() {
       }
     };
 
-    if (status === "authenticated") {
+    if (status === "authenticated" && !changingRole) {
       fetchAdminStatus();
     }
-  }, [status]);
+  }, [status, changingRole]);
 
-  // Redirigir solo cuando ya sabemos el estado
+  // Redirigir solo cuando ya sabemos el estado y NO estamos cambiando rol
   useEffect(() => {
-    if (isAdmin === false) {
+    if (isAdmin === false && !changingRole) {
       router.push("/");
     }
-  }, [isAdmin, router]);
+  }, [isAdmin, router, changingRole]);
 
   const handleLogout = async () => {
     try {
@@ -52,7 +54,57 @@ export default function RolPage() {
     }
   };
 
-  
+  const handleRoleChange = async (tipo: 'tienda' | 'repartidor') => {
+    if (changingRole) return; // Prevenir múltiples clicks
+    
+    setChangingRole(tipo);
+    
+    try {
+      const response = await fetch('/api/admin/switch_rol', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tipo }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Actualizar la sesión con los nuevos datos
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            tipo: tipo
+          }
+        });
+        
+        // Redirigir inmediatamente después de actualizar la sesión
+        router.push('/select-tienda');
+      } else {
+        console.error('Error al cambiar rol:', data.error);
+        alert(`Error: ${data.error}`);
+        setChangingRole(null);
+      }
+    } catch (error) {
+      console.error('Error en la petición:', error);
+      alert('Error al cambiar el rol. Intenta de nuevo.');
+      setChangingRole(null);
+    }
+  };
+
+  if (status === "loading" || isAdmin === null) {
+    return (
+      <LoadingImage
+      title="Cargando..."
+      subtitle=""
+      size="lg"
+      color="#471396" 
+      speed="1.2"
+      />
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
@@ -103,9 +155,10 @@ export default function RolPage() {
           </Link>
 
           {/* Store User Role */}
-          <Link
-            href="/select-tienda"
-            className="group block w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-white/90 hover:border-gray-400 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+          <button
+            onClick={() => handleRoleChange('tienda')}
+            disabled={changingRole !== null}
+            className="group block w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-white/90 hover:border-gray-400 transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -117,16 +170,21 @@ export default function RolPage() {
                 <h3 className="text-gray-800 font-medium">Usuario Tienda</h3>
                 <p className="text-gray-600 text-sm">Gestión de tienda</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              {changingRole === 'tienda' ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+              ) : (
+                <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
             </div>
-          </Link>
+          </button>
 
           {/* Delivery User Role */}
-          <Link
-            href="/select-tienda"
-            className="group block w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-white/90 hover:border-gray-400 transition-all duration-300 hover:scale-105 hover:shadow-xl"
+          <button
+            onClick={() => handleRoleChange('repartidor')}
+            disabled={changingRole !== null}
+            className="group block w-full p-4 bg-white/80 backdrop-blur-md border border-gray-300 rounded-xl hover:bg-white/90 hover:border-gray-400 transition-all duration-300 hover:scale-105 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -136,11 +194,15 @@ export default function RolPage() {
                 <h3 className="text-gray-800 font-medium">Usuario Repartidor</h3>
                 <p className="text-gray-600 text-sm">Gestión de entregas</p>
               </div>
-               <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              {changingRole === 'repartidor' ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-600"></div>
+              ) : (
+                <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
             </div>
-          </Link>
+          </button>
         </div>
 
         {/* Logout Button */}
