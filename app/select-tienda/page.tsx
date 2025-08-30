@@ -25,6 +25,8 @@ export default function SelectTiendaPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const router = useRouter();
   const { data: session, status } = useSession();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
 
   useEffect(() => {
     if (status === 'loading') return;
@@ -47,6 +49,30 @@ export default function SelectTiendaPage() {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Identificar autorizacion
+  useEffect(() => {
+    const fetchAdminStatus = async () => {
+    try {
+      const res = await fetch("/api/user/check-admin");
+      const data = await res.json();
+
+      if (res.ok) {
+        setIsAdmin(data.isAdmin);
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (err) {
+      console.error("Error verificando admin:", err);
+      setIsAdmin(false);
+    }
+  };
+
+    if (status === "authenticated") {
+      fetchAdminStatus();
+    }
+  }, [status]);
+
 
   const loadTiendas = async () => {
     try {
@@ -98,7 +124,6 @@ export default function SelectTiendaPage() {
   };
 
   // Loading state
-  
   if (status === 'loading' || loading) {
     return (
     <LoadingImage 
@@ -140,12 +165,14 @@ export default function SelectTiendaPage() {
                 <p className="text-xs text-slate-500 capitalize">{user.tipo}</p>
               </div>
               {/* boton return to rol */}
+              {isAdmin && (
               <button
               onClick={handleCambiarRol}
               className="cursor-pointer w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center shadow-lg hover:bg-purple-700 transition-colors duration-300"
             >
               <ArrowsRightLeftIcon className="w-5 h-5 " />
             </button>
+            )}
             </div>
 
             {/* Título centrado */}

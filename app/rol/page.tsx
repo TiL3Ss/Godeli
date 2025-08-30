@@ -2,13 +2,44 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from 'react';
 import { useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { TruckIcon } from "@heroicons/react/24/solid";
 
 export default function RolPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const fetchAdminStatus = async () => {
+      try {
+        const res = await fetch("/api/user/check-admin");
+        const data = await res.json();
+
+        if (res.ok) {
+          setIsAdmin(data.isAdmin);
+        } else {
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.error("Error verificando admin:", err);
+        setIsAdmin(false);
+      }
+    };
+
+    if (status === "authenticated") {
+      fetchAdminStatus();
+    }
+  }, [status]);
+
+  // Redirigir solo cuando ya sabemos el estado
+  useEffect(() => {
+    if (isAdmin === false) {
+      router.push("/");
+    }
+  }, [isAdmin, router]);
 
   const handleLogout = async () => {
     try {
@@ -20,6 +51,8 @@ export default function RolPage() {
       router.push("/");
     }
   };
+
+  
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex flex-col items-center justify-center p-4 relative overflow-hidden">
