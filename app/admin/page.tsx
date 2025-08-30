@@ -5,6 +5,8 @@ import React, { useState, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import LoadingImage from '../components/LoadingImage';
+import EditUsuario from '../components/EditUsuario';
+import AgregarUsuario from '../components/AgregarUsuario';
 import {
   MagnifyingGlassIcon as Search,
   UsersIcon as Users,
@@ -33,14 +35,8 @@ const AdminPanel = () => {
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [mostrarModalAgregarUsuario, setMostrarModalAgregarUsuario] = useState(false);
-  const [nuevoUsuario, setNuevoUsuario] = useState({
-    username: '',
-    password: '',
-    tipo: 'tienda',
-    nombre: '',
-    suscripcion: 0,
-    AD: 0
-  });
+  const [mostrarModalEditarUsuario, setMostrarModalEditarUsuario] = useState(false);
+  const [usuarioAEditar, setUsuarioAEditar] = useState(null);
 
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -76,58 +72,43 @@ const AdminPanel = () => {
     router.push('/rol');
   };
 
-  // Agregar nuevo usuario
-  const handleAgregarUsuario = async (e) => {
-    e.preventDefault();
-    
-    if (!nuevoUsuario.username || !nuevoUsuario.password || !nuevoUsuario.nombre) {
-      setMensaje({ 
-        tipo: 'error', 
-        texto: 'Por favor completa todos los campos requeridos' 
-      });
-      return;
-    }
+  // Abrir modal de edición
+  const handleEditarUsuario = (usuario) => {
+    setUsuarioAEditar(usuario);
+    setMostrarModalEditarUsuario(true);
+  };
 
-    setCargando(true);
-    try {
-      const response = await fetch('/api/admin/usuarios', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(nuevoUsuario),
-      });
+  // Cerrar modal de edición
+  const handleCerrarModalEdicion = () => {
+    setMostrarModalEditarUsuario(false);
+    setUsuarioAEditar(null);
+  };
 
-      const data = await response.json();
+  // Cerrar modal de agregar usuario
+  const handleCerrarModalAgregarUsuario = () => {
+    setMostrarModalAgregarUsuario(false);
+  };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al crear usuario');
-      }
+  // Manejar actualización de usuario
+  const handleUsuarioActualizado = (usuarioActualizado) => {
+    setUsuarios(prev => prev.map(u => 
+      u.id === usuarioActualizado.id ? usuarioActualizado : u
+    ));
+    setMensaje({ 
+      tipo: 'exito', 
+      texto: 'Usuario actualizado exitosamente' 
+    });
+    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  };
 
-      // Agregar usuario a la lista local
-      setUsuarios(prev => [...prev, data.data]);
-      
-      // Limpiar formulario
-      setNuevoUsuario({
-        username: '',
-        password: '',
-        tipo: 'tienda',
-        nombre: '',
-        suscripcion: 0,
-        AD: 0
-      });
-      
-      setMostrarModalAgregarUsuario(false);
-      setMensaje({ 
-        tipo: 'exito', 
-        texto: 'Usuario creado exitosamente' 
-      });
-    } catch (error) {
-      setMensaje({ tipo: 'error', texto: error.message });
-    } finally {
-      setCargando(false);
-      setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
-    }
+  // Manejar creación de usuario
+  const handleUsuarioCreado = (nuevoUsuario) => {
+    setUsuarios(prev => [...prev, nuevoUsuario]);
+    setMensaje({ 
+      tipo: 'exito', 
+      texto: 'Usuario creado exitosamente' 
+    });
+    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
   };
 
   // Filtrar usuarios
@@ -277,166 +258,24 @@ const AdminPanel = () => {
             </button>
           </div>
 
-
-
         </div>
       </div>
 
       {/* Modal para agregar usuario */}
       {mostrarModalAgregarUsuario && (
-        <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl p-8 w-full max-w-md border border-white/40">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-800">Agregar Nuevo Usuario</h3>
-              <button
-                onClick={() => setMostrarModalAgregarUsuario(false)}
-                className="p-2 hover:bg-gray-200/50 rounded-full transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
+        <AgregarUsuario
+          onClose={handleCerrarModalAgregarUsuario}
+          onUsuarioCreado={handleUsuarioCreado}
+        />
+      )}
 
-            <form onSubmit={handleAgregarUsuario} className="space-y-5 text-gray-700">
-              {/* Username */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username *
-                </label>
-                <input
-                  type="text"
-                  value={nuevoUsuario.username}
-                  onChange={(e) =>
-                    setNuevoUsuario({ ...nuevoUsuario, username: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                  required
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Contraseña *
-                </label>
-                <input
-                  type="password"
-                  value={nuevoUsuario.password}
-                  onChange={(e) =>
-                    setNuevoUsuario({ ...nuevoUsuario, password: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                  required
-                />
-              </div>
-
-              {/* Nombre */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
-                </label>
-                <input
-                  type="text"
-                  value={nuevoUsuario.nombre}
-                  onChange={(e) =>
-                    setNuevoUsuario({ ...nuevoUsuario, nombre: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                  required
-                />
-              </div>
-
-              {/* Tipo */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Usuario *
-                </label>
-                <select
-                  value={nuevoUsuario.tipo}
-                  onChange={(e) =>
-                    setNuevoUsuario({ ...nuevoUsuario, tipo: e.target.value })
-                  }
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 bg-white/60 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                >
-                  <option value="tienda">Tienda</option>
-                  <option value="repartidor">Repartidor</option>
-                </select>
-              </div>
-              
-
-              {/* Suscripción */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Suscripción
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={nuevoUsuario.suscripcion === 1}
-                    onChange={(e) =>
-                      setNuevoUsuario({
-                        ...nuevoUsuario,
-                        suscripcion: e.target.checked ? 1 : 0,
-                      })
-                    }
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-              {/* Admin */}
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">
-                  Permisos de administrador
-                </span>
-                <label className="relative inline-flex items-center cursor-pointer ">
-                  <input
-                    type="checkbox"
-                    checked={nuevoUsuario.AD === 1}
-                    onChange={(e) =>
-                      setNuevoUsuario({
-                        ...nuevoUsuario,
-                        AD: e.target.checked ? 1 : 0,
-                      })
-                    }
-                    className="sr-only peer "
-                  />
-                  <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:bg-blue-600 transition-colors"></div>
-                  <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-                </label>
-              </div>
-
-
-              {/* Botones */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setMostrarModalAgregarUsuario(false)}
-                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-2xl hover:bg-gray-100/70 font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={cargando}
-                  className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {cargando ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Creando...
-                    </>
-                  ) : (
-                    "Crear Usuario"
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-
+      {/* Modal para editar usuario */}
+      {mostrarModalEditarUsuario && usuarioAEditar && (
+        <EditUsuario
+          usuario={usuarioAEditar}
+          onClose={handleCerrarModalEdicion}
+          onUsuarioActualizado={handleUsuarioActualizado}
+        />
       )}
 
       {/* Mensaje de estado */}
@@ -610,9 +449,15 @@ const AdminPanel = () => {
                     
                     {/* Controles */}
                     <div className="flex flex-col sm:flex-row gap-3">
-                      {/* change datos de usuario */}
+                      {/* Botón Editar Usuario */}
                       <div className="flex items-center justify-between">
-                        <Edit className="w-5 h-5 text-blue-700 cursor-pointer" />
+                        <button
+                          onClick={() => handleEditarUsuario(usuario)}
+                          className="p-2 hover:bg-blue-50 rounded-lg transition-colors group"
+                          title="Editar usuario"
+                        >
+                          <Edit className="w-5 h-5 text-blue-700 group-hover:text-blue-800 cursor-pointer" />
+                        </button>
                       </div>
 
                       {/* Toggle Suscripción */}
