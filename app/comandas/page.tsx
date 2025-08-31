@@ -285,6 +285,14 @@ export default function ComandasPage() {
                   <span className="hidden sm:inline">Nueva</span>
                 </button>
               )}
+                <button
+                onClick={() => router.push('/carta')}
+                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-orange-50/80 hover:text-orange-600 border border-white/30 hover:border-orange-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+              >
+                <DocumentTextIcon className="w-4 h-4 " />
+                <span className="hidden sm:inline">Carta</span>
+              </button>
+              
 
               <button
                 onClick={handleLogout}

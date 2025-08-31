@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const tiendaId = searchParams.get('tienda_id');
+    const incluirInactivos = searchParams.get('incluir_inactivos') === 'true'; // 👈 nuevo
 
     if (!tiendaId) {
       return NextResponse.json(
@@ -28,7 +29,6 @@ export async function GET(request: NextRequest) {
     
     // Verificar permisos de acceso a la tienda
     if (session.user.tipo === 'tienda') {
-      // Las tiendas solo pueden ver sus propios productos
       if (session.user.tienda_id && Number(tiendaId) !== Number(session.user.tienda_id)) {
         return NextResponse.json(
           { success: false, error: 'Sin permisos para esta tienda' }, 
@@ -36,7 +36,6 @@ export async function GET(request: NextRequest) {
         );
       }
     } else if (session.user.tipo === 'repartidor') {
-      // Verificar que el repartidor tiene acceso a esta tienda
       const accesoResult = await client.execute({
         sql: `
           SELECT rt.id 
@@ -53,7 +52,8 @@ export async function GET(request: NextRequest) {
         );
       }
     }
-    
+
+    // 👇 Ajuste: mostrar activos o todos según parámetro
     const result = await client.execute({
       sql: `
         SELECT 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
           activo,
           created_at
         FROM productos 
-        WHERE tienda_id = ? AND activo = 1
+        WHERE tienda_id = ? ${incluirInactivos ? '' : 'AND activo = 1'}
         ORDER BY nombre ASC
       `,
       args: [tiendaId]
@@ -163,7 +163,16 @@ export async function POST(request: NextRequest) {
       args: [tienda_id, nombre, descripcion || '', precioNum]
     });
 
-    const productoId = result.lastInsertRowid;
+    // SOLUCIÓN: Convertir BigInt a Number antes de enviar la respuesta
+    const productoId = Number(result.lastInsertRowid);
+
+    // Obtener la fecha de creación del producto recién creado
+    const productoCreado = await client.execute({
+      sql: 'SELECT created_at FROM productos WHERE id = ?',
+      args: [productoId]
+    });
+
+    const fechaCreacion = productoCreado.rows[0]?.created_at;
 
     return NextResponse.json({
       success: true,
@@ -172,7 +181,8 @@ export async function POST(request: NextRequest) {
         nombre,
         descripcion: descripcion || '',
         precio: precioNum,
-        activo: true
+        activo: true,
+        created_at: fechaCreacion
       },
       message: 'Producto creado exitosamente'
     });

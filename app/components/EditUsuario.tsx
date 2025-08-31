@@ -164,7 +164,7 @@ const EditUsuario: React.FC<EditUsuarioProps> = ({
     <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header estilo Windows 11 */}
-        <div className="sticky top-0 bg-white/70 backdrop-blur-xl rounded-t-3xl p-6 border-b border-gray-200/50">
+        <div className="sticky top-0 bg-white backdrop-blur-xl rounded-t-3xl p-6 border-b border-gray-200/50 z-100">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center">
@@ -178,7 +178,7 @@ const EditUsuario: React.FC<EditUsuarioProps> = ({
             
             <button
               onClick={onClose}
-              className="p-2.5 hover:bg-gray-200/60 rounded-xl transition-all duration-200 group"
+              className="cursor-pointer p-2.5 hover:bg-gray-200/60 rounded-xl transition-all duration-200 group"
             >
               <X className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
             </button>
@@ -321,7 +321,7 @@ const EditUsuario: React.FC<EditUsuarioProps> = ({
                       setFormData(prev => ({ ...prev, password: '', confirmarPassword: '' }));
                     }
                   }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`cursor-pointer px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     mostrarCampoPassword
                       ? 'bg-red-100 text-red-700 hover:bg-red-200'
                       : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -362,14 +362,14 @@ const EditUsuario: React.FC<EditUsuarioProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-6 py-3.5 border border-gray-300/60 text-gray-700 rounded-2xl hover:bg-gray-100/60 font-semibold transition-all duration-200 backdrop-blur-sm"
+                className="cursor-pointer flex-1 px-6 py-3.5 border border-gray-300/60 text-gray-700 rounded-2xl hover:bg-gray-100/60 font-semibold transition-all duration-200 backdrop-blur-sm"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={cargando}
-                className="flex-1 px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
+                className="cursor-pointer flex-1 px-6 py-3.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-2xl font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg"
               >
                 {cargando ? (
                   <>
