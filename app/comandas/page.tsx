@@ -7,7 +7,7 @@ import { useSession, signOut } from 'next-auth/react';
 import ComandaCard from '../components/ComandaCard';
 import AgregarComandaModal from '../components/AgregarComandaModal';
 import LoadingImage from '../components/LoadingImage';
-import {ArrowRightEndOnRectangleIcon ,XCircleIcon,BookOpenIcon ,UserIcon ,DocumentTextIcon, ClockIcon,PlusCircleIcon }  from '@heroicons/react/24/solid';
+import {ArrowRightEndOnRectangleIcon ,XCircleIcon,BookOpenIcon ,UserIcon ,DocumentTextIcon, ClockIcon,PlusCircleIcon, TruckIcon }  from '@heroicons/react/24/solid';
 
 interface Comanda {
   id: number;
@@ -268,14 +268,6 @@ export default function ComandasPage() {
 
             {/* Botones de acción */}
             <div className="flex items-center space-x-2 ">
-              <button
-                onClick={() => router.push('/historial')}
-                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <ClockIcon className="w-4 h-4 " />
-                <span className="hidden sm:inline">Historial</span>
-              </button>
-
               {user.tipo === 'tienda' && (
                 <button
                   onClick={() => setShowModal(true)}
@@ -284,6 +276,22 @@ export default function ComandasPage() {
                   <PlusCircleIcon className="w-4 h-4 text-white" />
                   <span className="hidden sm:inline">Nueva</span>
                 </button>
+              )}
+              <button
+                onClick={() => router.push('/historial')}
+                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+              >
+                <ClockIcon className="w-4 h-4 " />
+                <span className="hidden sm:inline">Historial</span>
+              </button>
+              {user.tipo === 'tienda' && (
+                <button
+                onClick={() => router.push('/repartidor')}
+                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-purple-50/80 hover:text-purple-600 border border-white/30 hover:border-purple-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+              >
+                <TruckIcon className="w-4 h-4 " />
+                <span className="hidden sm:inline">Delivery</span>
+              </button>
               )}
                 <button
                 onClick={() => router.push('/carta')}

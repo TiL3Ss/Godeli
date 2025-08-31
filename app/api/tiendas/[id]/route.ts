@@ -12,7 +12,7 @@ const tursoClient = createClient({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verificar autenticación
@@ -24,7 +24,7 @@ export async function GET(
       );
     }
 
-    const tiendaId = params.id;
+    const { id: tiendaId } = await params; // Await params before accessing properties
     const user = session.user;
 
     // Obtener información de la tienda
