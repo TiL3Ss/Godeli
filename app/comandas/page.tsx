@@ -1,13 +1,13 @@
 // app/comandas/page.tsx
 'use client';
-
+import { Menu } from '@headlessui/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import ComandaCard from '../components/ComandaCard';
 import AgregarComandaModal from '../components/AgregarComandaModal';
 import LoadingImage from '../components/LoadingImage';
-import {ArrowRightEndOnRectangleIcon ,XCircleIcon,BookOpenIcon ,UserIcon ,DocumentTextIcon, ClockIcon,PlusCircleIcon, TruckIcon }  from '@heroicons/react/24/solid';
+import {ArrowRightEndOnRectangleIcon ,XCircleIcon,BookOpenIcon ,UserIcon ,DocumentTextIcon, ClockIcon,PlusCircleIcon, TruckIcon, EllipsisVerticalIcon }  from '@heroicons/react/24/solid';
 
 interface Comanda {
   id: number;
@@ -267,49 +267,135 @@ export default function ComandasPage() {
             </div>
 
             {/* Botones de acción */}
-            <div className="flex items-center space-x-2 ">
-              {user.tipo === 'tienda' && (
-                <button
-                  onClick={() => setShowModal(true)}
-                  className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border border-green-500/30 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-                >
-                  <PlusCircleIcon className="w-4 h-4 text-white" />
-                  <span className="hidden sm:inline">Nueva</span>
-                </button>
-              )}
-              <button
-                onClick={() => router.push('/historial')}
-                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <ClockIcon className="w-4 h-4 " />
-                <span className="hidden sm:inline">Historial</span>
-              </button>
-              {user.tipo === 'tienda' && (
-                <button
-                onClick={() => router.push('/repartidor')}
-                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-purple-50/80 hover:text-purple-600 border border-white/30 hover:border-purple-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <TruckIcon className="w-4 h-4 " />
-                <span className="hidden sm:inline">Delivery</span>
-              </button>
-              )}
-                <button
-                onClick={() => router.push('/carta')}
-                className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-orange-50/80 hover:text-orange-600 border border-white/30 hover:border-orange-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
-              >
-                <DocumentTextIcon className="w-4 h-4 " />
-                <span className="hidden sm:inline">Carta</span>
-              </button>
-              
+            {/* Botones de acción */}
+<div className="flex items-center space-x-2">
+  {/* En pantallas medianas o grandes → botones normales */}
+  <div className="hidden xl:flex items-center space-x-2">
+    {user.tipo === 'tienda' && (
+      <button
+        onClick={() => setShowModal(true)}
+        className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 border border-green-500/30 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+      >
+        <PlusCircleIcon className="w-4 h-4 text-white" />
+        <span>Nueva</span>
+      </button>
+    )}
 
+    <button
+      onClick={() => router.push('/historial')}
+      className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-blue-50/80 hover:text-blue-700 border border-white/30 hover:border-blue-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+    >
+      <ClockIcon className="w-4 h-4" />
+      <span>Historial</span>
+    </button>
+
+    {user.tipo === 'tienda' && (
+      <button
+        onClick={() => router.push('/repartidor')}
+        className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-purple-50/80 hover:text-purple-600 border border-white/30 hover:border-purple-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+      >
+        <TruckIcon className="w-4 h-4" />
+        <span>Delivery</span>
+      </button>
+    )}
+
+    <button
+      onClick={() => router.push('/carta')}
+      className="cursor-pointer group flex items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-orange-50/80 hover:text-orange-600 border border-white/30 hover:border-orange-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+    >
+      <DocumentTextIcon className="w-4 h-4" />
+      <span>Carta</span>
+    </button>
+
+    <button
+      onClick={handleLogout}
+      className="group flex cursor-pointer items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+    >
+      <ArrowRightEndOnRectangleIcon className="w-4 h-4 group-hover:animate-pulse" />
+      <span>Salir</span>
+    </button>
+  </div>
+
+  {/* menú desplegable */}
+  <div className="xl:hidden">
+    <Menu as="div" className="relative inline-block text-left">
+      <Menu.Button className="p-2 rounded-lg bg-white/70 border border-slate-200 shadow hover:bg-slate-100">
+        <EllipsisVerticalIcon className="w-5 h-5 text-slate-700" />
+      </Menu.Button>
+
+      <Menu.Items className="absolute right-0 mt-2 w-40 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
+        {user.tipo === 'tienda' && (
+          <Menu.Item>
+            {({ active }) => (
               <button
-                onClick={handleLogout}
-                className="group flex cursor-pointer items-center space-x-2 px-3 py-2 text-sm font-medium text-slate-700 bg-white/60 hover:bg-red-50/80 hover:text-red-700 border border-white/30 hover:border-red-200/60 rounded-xl shadow-sm backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:scale-105"
+                onClick={() => setShowModal(true)}
+                className={`${
+                  active ? 'bg-green-100 text-green-700' : 'text-slate-700'
+                } flex items-center w-full px-3 py-2 text-sm`}
               >
-                <ArrowRightEndOnRectangleIcon className="w-4 h-4 group-hover:animate-pulse" />
-                <span className="hidden sm:inline">Salir</span>
+                <PlusCircleIcon className="w-4 h-4 mr-2" /> Nueva
               </button>
-            </div>
+            )}
+          </Menu.Item>
+        )}
+
+        <Menu.Item>
+          {({ active }) => (
+            <button
+              onClick={() => router.push('/historial')}
+              className={`${
+                active ? 'bg-blue-100 text-blue-700' : 'text-slate-700'
+              } flex items-center w-full px-3 py-2 text-sm`}
+            >
+              <ClockIcon className="w-4 h-4 mr-2" /> Historial
+            </button>
+          )}
+        </Menu.Item>
+
+        {user.tipo === 'tienda' && (
+          <Menu.Item>
+            {({ active }) => (
+              <button
+                onClick={() => router.push('/repartidor')}
+                className={`${
+                  active ? 'bg-purple-100 text-purple-700' : 'text-slate-700'
+                } flex items-center w-full px-3 py-2 text-sm`}
+              >
+                <TruckIcon className="w-4 h-4 mr-2" /> Delivery
+              </button>
+            )}
+          </Menu.Item>
+        )}
+
+        <Menu.Item>
+          {({ active }) => (
+            <button
+              onClick={() => router.push('/carta')}
+              className={`${
+                active ? 'bg-orange-100 text-orange-700' : 'text-slate-700'
+              } flex items-center w-full px-3 py-2 text-sm`}
+            >
+              <DocumentTextIcon className="w-4 h-4 mr-2" /> Carta
+            </button>
+          )}
+        </Menu.Item>
+
+        <Menu.Item>
+          {({ active }) => (
+            <button
+              onClick={handleLogout}
+              className={`${
+                active ? 'bg-red-100 text-red-700' : 'text-slate-700'
+              } flex items-center w-full px-3 py-2 text-sm`}
+            >
+              <ArrowRightEndOnRectangleIcon className="w-4 h-4 mr-2" /> Salir
+            </button>
+          )}
+        </Menu.Item>
+      </Menu.Items>
+    </Menu>
+  </div>
+</div>
           </div>
         </div>
       </div>

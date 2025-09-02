@@ -427,38 +427,25 @@ const RepartidorPanel = () => {
               </div>
 
               {/* Reloj */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
-                    <ClockIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Hora Local</p>
-                    <p className="text-lg font-bold text-slate-900">
-                      {currentTime.toLocaleTimeString('es-CL', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                      })}
-                    </p>
-                    <p className="text-xs text-slate-500">UTC-3</p>
-                  </div>
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200/50 lg:col-start-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-lg flex items-center justify-center shadow-lg">
+                  <ClockIcon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-700">Hora Local</p>
+                  <p className="text-lg font-bold text-slate-900">
+                    {currentTime.toLocaleTimeString('es-CL', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    })}
+                  </p>
+                  <p className="text-xs text-slate-500">UTC-3</p>
                 </div>
               </div>
-
-              {/* Estadísticas principales */}
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200/50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-400 to-emerald-600 rounded-lg flex items-center justify-center shadow-lg">
-                    <TruckIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-slate-700">Total Repartidores</p>
-                    <p className="text-lg font-bold text-slate-900">{stats.suscritos}</p>
-                  </div>
-                </div>
-              </div>
+            </div>
             </div>
           </div>
         </div>
