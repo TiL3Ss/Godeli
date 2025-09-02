@@ -1,4 +1,3 @@
-// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,18 +5,65 @@ import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import Image from 'next/image';
 import LoadingImage from './components/LoadingImage';
+import NotificationPop from './components/NotificationPop';
+
+// Tipo para las notificaciones
+interface Notification {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  action?: {
+    label: string;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary';
+    loading?: boolean;
+  };
+  persistent?: boolean;
+}
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const router = useRouter();
   const { data: session, status } = useSession();
+
+  // Función para agregar notificaciones
+  const addNotification = (
+    message: string, 
+    type: 'success' | 'error' | 'info' | 'warning',
+    options?: {
+      persistent?: boolean;
+      action?: {
+        label: string;
+        onClick: () => void;
+        variant?: 'primary' | 'secondary';
+        loading?: boolean;
+      };
+    }
+  ) => {
+    const id = Date.now();
+    const notification: Notification = {
+      id,
+      message,
+      type,
+      persistent: options?.persistent || false,
+      action: options?.action
+    };
+    
+    setNotifications(prev => [...prev, notification]);
+  };
+
+  // Función para remover notificaciones
+  const removeNotification = (id: number) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   useEffect(() => {
     // Redirigir si ya está autenticado
     if (status === 'authenticated' && session?.user) {
+      addNotification('Sesión activa encontrada', 'info');
       redirectBasedOnUser(session.user);
     }
   }, [status, session, router]);
@@ -25,6 +71,8 @@ export default function LoginPage() {
   // Redirigir según el usuario y sus permisos
   const redirectBasedOnUser = async (user: any) => {
     try {
+      addNotification('Verificando permisos de usuario...', 'info');
+      
       // Verificar si el usuario tiene permisos de administrador
       const response = await fetch('/api/user/check-admin', {
         method: 'GET',
@@ -37,19 +85,19 @@ export default function LoginPage() {
         const data = await response.json();
         
         if (data.isAdmin) {
-          // Usuario con permisos de admin va al selector de rol
+          addNotification('Permisos de administrador detectados', 'success');
           router.push('/rol');
         } else {
-          // Usuario normal va directamente según su tipo
+          addNotification(`Redirigiendo como ${user.tipo}`, 'success');
           redirectBasedOnTipo(user.tipo);
         }
       } else {
-        // Si hay error verificando admin, redirigir según tipo normal
+        addNotification('Error al verificar permisos, usando configuración por defecto', 'warning');
         redirectBasedOnTipo(user.tipo);
       }
     } catch (error) {
       console.error('Error verificando permisos de admin:', error);
-      // En caso de error, redirigir según tipo normal
+      addNotification('Error de conexión, redirigiendo con configuración básica', 'warning');
       redirectBasedOnTipo(user.tipo);
     }
   };
@@ -68,19 +116,22 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
-    setError('');
+    
+    // Limpiar notificaciones previas de error
+    setNotifications(prev => prev.filter(n => n.type !== 'error'));
 
     if (!username.trim() || !password.trim()) {
-      setError('Por favor ingresa usuario y contraseña');
+      addNotification('Por favor ingresa usuario y contraseña', 'error', { persistent: true });
       setLoading(false);
       return;
     }
 
     try {
       console.log('Intentando login con:', username.trim());
+      addNotification('Iniciando sesión...', 'info');
       
       const result = await signIn('credentials', {
         username: username.trim(),
@@ -88,32 +139,59 @@ export default function LoginPage() {
         redirect: false,
       });
 
-
       if (result?.error) {
         console.error('Error en signIn:', result.error);
         
+        let errorMessage = '';
         switch (result.error) {
           case 'CredentialsSignin':
-            setError('Usuario o contraseña incorrectos');
+            errorMessage = 'Usuario o contraseña incorrectos';
             break;
           case 'AccessDenied':
-            setError('Acceso denegado');
+            errorMessage = 'Acceso denegado';
             break;
           case 'Verification':
-            setError('Error de verificación');
+            errorMessage = 'Error de verificación';
             break;
           default:
-            setError('Error al iniciar sesión. Inténtalo de nuevo.');
+            errorMessage = 'Error al iniciar sesión. Inténtalo de nuevo.';
         }
+        
+        addNotification(errorMessage, 'error', { 
+          persistent: true,
+          action: {
+            label: 'Reintentar',
+            onClick: () => {
+              setNotifications(prev => prev.filter(n => n.type !== 'error'));
+              setUsername('');
+              setPassword('');
+            },
+            variant: 'secondary'
+          }
+        });
       } else if (result?.ok) {
         console.log('Login exitoso, esperando redirección...');
-        // NextAuth actualizará automáticamente la sesión
+        addNotification('¡Login exitoso! Redirigiendo...', 'success');
       } else {
-        setError('Error inesperado al iniciar sesión');
+        addNotification('Error inesperado al iniciar sesión', 'error', { persistent: true });
       }
     } catch (err: any) {
       console.error('Excepción durante login:', err);
-      setError('Error de conexión. Verifica tu conexión a internet.');
+      addNotification('Error de conexión. Verifica tu conexión a internet.', 'error', {
+        persistent: true,
+        action: {
+          label: 'Verificar conexión',
+          onClick: () => {
+            // Verificar conectividad
+            if (navigator.onLine) {
+              addNotification('Conexión a internet detectada', 'success');
+            } else {
+              addNotification('Sin conexión a internet', 'error', { persistent: true });
+            }
+          },
+          variant: 'primary'
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -121,15 +199,21 @@ export default function LoginPage() {
 
   // Función para rellenar credenciales de prueba
   const fillTestCredentials = (userType: 'tienda' | 'repartidor' | 'admin') => {
+    // Limpiar notificaciones previas
+    setNotifications([]);
+    
     if (userType === 'tienda') {
       setUsername('testTienda');
       setPassword('Test1234');
+      addNotification('Credenciales de tienda cargadas', 'success');
     } else if (userType === 'repartidor') {
       setUsername('testRepartidor');
       setPassword('Test1234');
+      addNotification('Credenciales de repartidor cargadas', 'success');
     } else if (userType === 'admin') {
       setUsername('admin');
       setPassword('Admin1234');
+      addNotification('Credenciales de administrador cargadas', 'success');
     }
   };
 
@@ -137,12 +221,12 @@ export default function LoginPage() {
   if (status === 'loading') {
    return (
       <LoadingImage 
-      title="Verficando sesión..."
-      subtitle="espera un momento"
-      size="lg"
-      color="#471396" 
-      speed="1.2"
-    />
+        title="Verificando sesión..."
+        subtitle="espera un momento"
+        size="lg"
+        color="#471396" 
+        speed="1.2"
+      />
     );
   }
 
@@ -150,13 +234,13 @@ export default function LoginPage() {
   if (status === 'authenticated') {
     return (
       <LoadingImage 
-      title="Redirigiendo..."
-      subtitle="espera un momento"
-      size="lg"
-      color="#471396" 
-      speed="1.2"
-    />
-    )
+        title="Redirigiendo..."
+        subtitle="espera un momento"
+        size="lg"
+        color="#471396" 
+        speed="1.2"
+      />
+    );
   }
 
   return (
@@ -174,7 +258,7 @@ export default function LoginPage() {
           </p>
         </div>
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <div className="mt-8 space-y-6">
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="username" className="sr-only">
@@ -212,27 +296,11 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    {error}
-                  </h3>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div>
             <button
               type="submit"
               disabled={loading}
+              onClick={handleSubmit}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
@@ -281,12 +349,23 @@ export default function LoginPage() {
                     Usar
                   </button>
                 </div>
-                
               </div>
             </div>
           </div>
-        </form>
+        </div>
       </div>
+
+      {/* Renderizar notificaciones */}
+      {notifications.map((notification) => (
+        <NotificationPop
+          key={notification.id}
+          message={notification.message}
+          type={notification.type}
+          onClose={() => removeNotification(notification.id)}
+          action={notification.action}
+          persistent={notification.persistent}
+        />
+      ))}
     </div>
   );
 }
