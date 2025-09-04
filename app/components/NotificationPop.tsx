@@ -67,39 +67,43 @@ const NotificationPop: React.FC<NotificationPopProps> = ({
   const typeConfig = {
     success: {
       icon: CheckIcon,
-      borderColor: 'border-green-500',
-      bgColor: 'bg-green-50/90',
-      iconBgColor: 'bg-green-500',
-      textColor: 'text-green-800',
-      closeColor: 'text-green-600 hover:text-green-800',
-      progressColor: 'bg-green-500'
+      accentColor: 'rgb(52, 199, 89)', // iOS Green
+      bgGradient: 'from-green-500/20 via-green-400/15 to-emerald-500/20',
+      iconBg: 'bg-gradient-to-br from-green-400 to-green-600',
+      textColor: 'text-green-900/90',
+      closeHover: 'hover:bg-green-100/80',
+      shadowColor: 'shadow-green-500/25',
+      progressColor: 'bg-gradient-to-r from-green-400 to-emerald-500'
     },
     error: {
       icon: XMarkIcon,
-      borderColor: 'border-red-500',
-      bgColor: 'bg-red-50/90',
-      iconBgColor: 'bg-red-500',
-      textColor: 'text-red-800',
-      closeColor: 'text-red-600 hover:text-red-800',
-      progressColor: 'bg-red-500'
+      accentColor: 'rgb(255, 59, 48)', // iOS Red
+      bgGradient: 'from-red-500/20 via-red-400/15 to-rose-500/20',
+      iconBg: 'bg-gradient-to-br from-red-400 to-red-600',
+      textColor: 'text-red-900/90',
+      closeHover: 'hover:bg-red-100/80',
+      shadowColor: 'shadow-red-500/25',
+      progressColor: 'bg-gradient-to-r from-red-400 to-rose-500'
     },
     info: {
       icon: InformationCircleIcon,
-      borderColor: 'border-blue-500',
-      bgColor: 'bg-blue-50/90',
-      iconBgColor: 'bg-blue-500',
-      textColor: 'text-blue-800',
-      closeColor: 'text-blue-600 hover:text-blue-800',
-      progressColor: 'bg-blue-500'
+      accentColor: 'rgb(0, 122, 255)', // iOS Blue
+      bgGradient: 'from-blue-500/20 via-blue-400/15 to-cyan-500/20',
+      iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600',
+      textColor: 'text-blue-900/90',
+      closeHover: 'hover:bg-blue-100/80',
+      shadowColor: 'shadow-blue-500/25',
+      progressColor: 'bg-gradient-to-r from-blue-400 to-cyan-500'
     },
     warning: {
       icon: ExclamationTriangleIcon,
-      borderColor: 'border-amber-500',
-      bgColor: 'bg-amber-50/90',
-      iconBgColor: 'bg-amber-500',
-      textColor: 'text-amber-800',
-      closeColor: 'text-amber-600 hover:text-amber-800',
-      progressColor: 'bg-amber-500'
+      accentColor: 'rgb(255, 149, 0)', // iOS Orange
+      bgGradient: 'from-amber-500/20 via-orange-400/15 to-yellow-500/20',
+      iconBg: 'bg-gradient-to-br from-amber-400 to-orange-600',
+      textColor: 'text-amber-900/90',
+      closeHover: 'hover:bg-amber-100/80',
+      shadowColor: 'shadow-amber-500/25',
+      progressColor: 'bg-gradient-to-r from-amber-400 to-orange-500'
     }
   };
 
@@ -107,36 +111,61 @@ const NotificationPop: React.FC<NotificationPopProps> = ({
   const Icon = config.icon;
 
   const actionButtonClasses = action?.variant === 'secondary' 
-    ? `${config.bgColor} hover:opacity-80 ${config.textColor} border ${config.borderColor}`
-    : `${config.iconBgColor} text-white hover:opacity-90`;
+    ? `bg-white/60 backdrop-blur-xl border border-white/30 ${config.textColor} hover:bg-white/80 hover:border-white/50 hover:scale-[1.02] active:scale-[0.98]`
+    : `${config.iconBg} text-white hover:scale-[1.02] active:scale-[0.98] shadow-lg`;
 
   return (
     <>
-      <div className={`fixed top-28 right-4 z-[60] flex items-center transition-all duration-300 ease-out transform ${animationClass}`}>
-        {/* Círculo con ícono */}
-        <div className={`relative flex items-center justify-center w-20 h-20 rounded-full border-4 bg-white shadow-xl z-20 ${config.borderColor}`}>
-          <Icon className={`w-10 h-10 z-30 relative ${config.iconBgColor.replace('bg-', 'text-')}`} />
-        </div>
-        
-        {/* Cápsula con texto y botón */}
-        <div className={`ml-[-24px] flex items-center pl-10 pr-4 py-1 rounded-r-2xl border-2 shadow-lg backdrop-blur-xl max-w-sm z-10 relative ${config.borderColor} ${config.bgColor}`}>
-          <div className="flex-1 z-0 relative">
-            <span className={`text-sm font-medium leading-relaxed ${config.textColor}`}>
+      <div className={`fixed top-20 right-6 z-[60] transition-all duration-500 ease-out transform ${animationClass}`}>
+        {/* Contenedor principal con glassmorphism */}
+        <div className={`
+          flex items-center max-w-sm
+          bg-gradient-to-br ${config.bgGradient}
+          backdrop-blur-2xl
+          border border-white/20
+          rounded-3xl
+          shadow-2xl ${config.shadowColor}
+          overflow-hidden
+          relative
+        `}>
+          {/* Reflejo superior para efecto glass */}
+          <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+          
+          {/* Círculo con ícono */}
+          <div className="flex-shrink-0 m-4 relative">
+            <div className={`
+              w-12 h-12 rounded-2xl ${config.iconBg}
+              flex items-center justify-center
+              shadow-lg
+              relative overflow-hidden
+            `}>
+              {/* Efecto de brillo en el ícono */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+              <Icon className="w-6 h-6 text-white relative z-10" />
+            </div>
+          </div>
+          
+          {/* Contenido */}
+          <div className="flex-1 pr-4 py-4 min-h-[4rem] flex flex-col justify-center">
+            <p className={`text-sm font-medium leading-snug ${config.textColor} mb-0`}>
               {message}
-            </span>
+            </p>
             
             {/* Botón de acción */}
             {action && (
               <button
                 onClick={action.onClick}
                 disabled={action.loading}
-                className={`mt-2 px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-200 shadow-sm block ${actionButtonClasses} ${
-                  action.loading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105 active:scale-95'
-                }`}
+                className={`
+                  mt-3 px-4 py-2 rounded-xl text-xs font-semibold 
+                  transition-all duration-300 ease-out
+                  ${actionButtonClasses}
+                  ${action.loading ? 'opacity-50 cursor-not-allowed' : ''}
+                `}
               >
                 {action.loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                  <div className="flex items-center gap-2 justify-center">
+                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
                     Cargando...
                   </div>
                 ) : (
@@ -148,25 +177,41 @@ const NotificationPop: React.FC<NotificationPopProps> = ({
 
           {/* Botón de cerrar */}
           {!(persistent && type === 'error') && (
-            <button
-              onClick={handleClose}
-              className={`ml-4 w-6 h-6 flex items-center justify-center rounded-full border transition-all duration-200 z-0 relative ${config.borderColor} ${config.closeColor} hover:${config.iconBgColor} hover:text-white active:scale-95`}
-              aria-label="Cerrar notificación"
-            >
-              <XMarkIcon className="w-4 h-4" />
-            </button>
+            <div className="flex-shrink-0 mr-4">
+              <button
+                onClick={handleClose}
+                className={`
+                  w-8 h-8 rounded-full 
+                  bg-white/20 backdrop-blur-xl border border-white/30
+                  ${config.closeHover}
+                  flex items-center justify-center
+                  transition-all duration-300 ease-out
+                  hover:scale-110 active:scale-95
+                  shadow-sm
+                `}
+                aria-label="Cerrar notificación"
+              >
+                <XMarkIcon className="w-4 h-4 text-white/80" />
+              </button>
+            </div>
           )}
           
-          {/* Barra de progreso */}
+          {/* Barra de progreso moderna */}
           {!persistent && (
-            <div className="absolute bottom-0 left-10 right-0 h-1 bg-black/10 rounded-br-2xl overflow-hidden">
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10 overflow-hidden">
               <div 
-                className={`h-full ${config.progressColor} transition-all ease-linear rounded-br-2xl`}
+                className={`
+                  h-full ${config.progressColor} 
+                  shadow-sm
+                  transition-all ease-linear
+                `}
                 style={{
                   width: '100%',
                   animation: `shrink ${duration}ms linear forwards`
                 }}
               />
+              {/* Efecto de brillo en la barra de progreso */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 animate-pulse" />
             </div>
           )}
         </div>
@@ -174,8 +219,14 @@ const NotificationPop: React.FC<NotificationPopProps> = ({
 
       <style jsx>{`
         @keyframes shrink {
-          from { width: 100%; }
-          to { width: 0%; }
+          from { 
+            width: 100%; 
+            opacity: 1;
+          }
+          to { 
+            width: 0%; 
+            opacity: 0.5;
+          }
         }
       `}</style>
     </>

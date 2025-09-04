@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import LoadingImage from '../components/LoadingImage';
 import EditUsuario from '../components/EditUsuario';
 import AgregarUsuario from '../components/AgregarUsuario';
+import AgregarTienda from '../components/AgregarTienda';
 import {
   MagnifyingGlassIcon as Search,
   UsersIcon as Users,
@@ -21,12 +22,14 @@ import {
   ArrowRightOnRectangleIcon as LogOut,
   UserPlusIcon as UserPlus,
   PencilSquareIcon as Edit,
-  ArrowsRightLeftIcon as SwitchHorizontal
+  ArrowsRightLeftIcon as SwitchHorizontal,
+  PlusCircleIcon
 } from '@heroicons/react/24/solid';
 
 const AdminPanel = () => {
   const router = useRouter();
   const [usuarios, setUsuarios] = useState([]);
+  const [Tiendas, setTiendas] = useState([]);
   const [filtroTexto, setFiltroTexto] = useState('');
   const [filtroSuscripcion, setFiltroSuscripcion] = useState('todos');
   const [filtroAdmin, setFiltroAdmin] = useState('todos');
@@ -35,6 +38,7 @@ const AdminPanel = () => {
   const [cargandoInicial, setCargandoInicial] = useState(true);
   const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
   const [mostrarModalAgregarUsuario, setMostrarModalAgregarUsuario] = useState(false);
+  const [mostrarModalAgregarTienda, setMostrarModalAgregarTienda] = useState(false);
   const [mostrarModalEditarUsuario, setMostrarModalEditarUsuario] = useState(false);
   const [usuarioAEditar, setUsuarioAEditar] = useState(null);
 
@@ -56,6 +60,25 @@ const AdminPanel = () => {
       setMensaje({ 
         tipo: 'error', 
         texto: 'Error al cargar los usuarios: ' + error.message 
+      });
+    } finally {
+      setCargandoInicial(false);
+    }
+  };
+
+  const cargarTiendas = async () => {
+    setCargandoInicial(true);
+    try {
+      const response = await fetch('/api/tiendas');
+      if (!response.ok) {
+        throw new Error('Error al cargar tiendas');
+      }
+      const data = await response.json();
+      setTiendas(data);
+    } catch (error) {
+      setMensaje({ 
+        tipo: 'error', 
+        texto: 'Error al cargar las tiendas: ' + error.message 
       });
     } finally {
       setCargandoInicial(false);
@@ -89,6 +112,10 @@ const AdminPanel = () => {
     setMostrarModalAgregarUsuario(false);
   };
 
+  const handleCerrarModalAgregarTienda = () => {
+    setMostrarModalAgregarTienda(false);
+  };
+
   // Manejar actualización de usuario
   const handleUsuarioActualizado = (usuarioActualizado) => {
     setUsuarios(prev => prev.map(u => 
@@ -107,6 +134,16 @@ const AdminPanel = () => {
     setMensaje({ 
       tipo: 'exito', 
       texto: 'Usuario creado exitosamente' 
+    });
+    setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
+  };
+
+  // Manejar creación de Tienda
+  const handleTiendaCreada = (nuevaTienda) => {
+    setTiendas(prev => [...prev, nuevaTienda]);
+    setMensaje({ 
+      tipo: 'exito', 
+      texto: 'Tienda creada exitosamente' 
     });
     setTimeout(() => setMensaje({ tipo: '', texto: '' }), 3000);
   };
@@ -240,6 +277,13 @@ const AdminPanel = () => {
             >
               <UserPlus className="w-5 h-5" />
             </button>
+            {/* Botón Agregar Tienda */}
+            <button
+              onClick={() => setMostrarModalAgregarTienda(true)}
+              className="cursor-pointer w-12 h-12 flex items-center justify-center bg-blue-600 active:bg-green-700 hover:bg-blue-800 text-white rounded-full transition-colors shadow-md"
+            >
+              <PlusCircleIcon className="w-5 h-5" />
+            </button>
 
             {/* Botón Cambiar Rol */}
             <button
@@ -266,6 +310,14 @@ const AdminPanel = () => {
         <AgregarUsuario
           onClose={handleCerrarModalAgregarUsuario}
           onUsuarioCreado={handleUsuarioCreado}
+        />
+      )}
+
+      {/* Modal para agregar Tienda */}
+      {mostrarModalAgregarTienda && (
+        <AgregarTienda
+          onClose={handleCerrarModalAgregarTienda}
+          onTiendaCreada={handleTiendaCreada}
         />
       )}
 
