@@ -1,22 +1,24 @@
+// components/AgregarComandaModal.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
+import {
+  XMarkIcon as X,
+  UserIcon as User,
+  MapPinIcon as MapPin,
+  PhoneIcon as Phone,
+  ShoppingCartIcon as Cart,
+  ExclamationTriangleIcon as AlertTriangle,
+  CheckCircleIcon as CheckCircle,
+  PlusIcon as Plus,
+  MinusIcon ,
+} from '@heroicons/react/24/solid';
 
 interface Producto {
   id: number;
   nombre: string;
   descripcion?: string;
   precio: number;
-}
-
-interface ComandaFormData {
-  cliente_nombre: string;
-  cliente_telefono: string;
-  cliente_direccion: string;
-  productos: Array<{
-    producto_id: number;
-    cantidad: number;
-  }>;
 }
 
 interface AgregarComandaModalProps {
@@ -31,17 +33,23 @@ interface ProductoSeleccionado {
   producto: Producto;
 }
 
-export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreated }: AgregarComandaModalProps) {
+export default function AgregarComandaModal({
+  tiendaId,
+  onClose,
+  onComandaCreated,
+}: AgregarComandaModalProps) {
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [productosSeleccionados, setProductosSeleccionados] = useState<ProductoSeleccionado[]>([]);
+  const [productosSeleccionados, setProductosSeleccionados] = useState<
+    ProductoSeleccionado[]
+  >([]);
   const [formData, setFormData] = useState({
     cliente_nombre: '',
     cliente_telefono: '',
-    cliente_direccion: ''
+    cliente_direccion: '',
   });
   const [loading, setLoading] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(true);
-  const [error, setError] = useState('');
+  const [mensaje, setMensaje] = useState({ tipo: '', texto: '' });
 
   useEffect(() => {
     loadProductos();
@@ -51,359 +59,339 @@ export default function AgregarComandaModal({ tiendaId, onClose, onComandaCreate
     try {
       setLoadingProductos(true);
       const response = await fetch(`/api/productos?tienda_id=${tiendaId}`);
-      
-      if (response.ok) {
-        const responseData = await response.json();
-        // La API devuelve los productos en responseData.data según el código
-        if (responseData.success && responseData.data) {
-          setProductos(responseData.data);
-        } else {
-          setProductos([]);
-          setError('No se encontraron productos');
-        }
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setProductos(data.data || []);
       } else {
-        const errorData = await response.json();
-        setError(errorData.error || 'Error al cargar productos');
+        setProductos([]);
+        setMensaje({ tipo: 'error', texto: data.error || 'No hay productos' });
       }
-    } catch (error) {
-      console.error('Error al cargar productos:', error);
-      setError('Error al cargar productos');
+    } catch (err) {
+      setMensaje({ tipo: 'error', texto: 'Error al cargar productos' });
     } finally {
       setLoadingProductos(false);
     }
   };
 
   const agregarProducto = (producto: Producto) => {
-    const existe = productosSeleccionados.find(p => p.producto_id === producto.id);
+    const existe = productosSeleccionados.find(
+      (p) => p.producto_id === producto.id
+    );
     if (existe) {
-      setProductosSeleccionados(prev =>
-        prev.map(p =>
+      setProductosSeleccionados((prev) =>
+        prev.map((p) =>
           p.producto_id === producto.id
             ? { ...p, cantidad: p.cantidad + 1 }
             : p
         )
       );
     } else {
-      setProductosSeleccionados(prev => [
+      setProductosSeleccionados((prev) => [
         ...prev,
-        { producto_id: producto.id, cantidad: 1, producto }
+        { producto_id: producto.id, cantidad: 1, producto },
       ]);
     }
   };
 
   const actualizarCantidad = (productoId: number, cantidad: number) => {
     if (cantidad <= 0) {
-      setProductosSeleccionados(prev =>
-        prev.filter(p => p.producto_id !== productoId)
+      setProductosSeleccionados((prev) =>
+        prev.filter((p) => p.producto_id !== productoId)
       );
     } else {
-      setProductosSeleccionados(prev =>
-        prev.map(p =>
-          p.producto_id === productoId
-            ? { ...p, cantidad }
-            : p
+      setProductosSeleccionados((prev) =>
+        prev.map((p) =>
+          p.producto_id === productoId ? { ...p, cantidad } : p
         )
       );
     }
   };
 
-  const eliminarProducto = (productoId: number) => {
-    setProductosSeleccionados(prev =>
-      prev.filter(p => p.producto_id !== productoId)
+  const calcularTotal = () =>
+    productosSeleccionados.reduce(
+      (total, item) => total + item.producto.precio * item.cantidad,
+      0
     );
-  };
-
-  const calcularTotal = () => {
-    return productosSeleccionados.reduce((total, item) => {
-      return total + (item.producto.precio * item.cantidad);
-    }, 0);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (productosSeleccionados.length === 0) {
-      setError('Debe seleccionar al menos un producto');
+
+    if (!formData.cliente_nombre.trim() || !formData.cliente_direccion.trim()) {
+      setMensaje({
+        tipo: 'error',
+        texto: 'Nombre y dirección del cliente son requeridos',
+      });
       return;
     }
 
-    if (!formData.cliente_nombre.trim() || !formData.cliente_direccion.trim()) {
-      setError('Nombre del cliente y dirección son requeridos');
+    if (productosSeleccionados.length === 0) {
+      setMensaje({ tipo: 'error', texto: 'Debes agregar al menos un producto' });
       return;
     }
 
     setLoading(true);
-    setError('');
-    
     try {
-      const comandaData = {
-        tienda_id: tiendaId,
-        cliente_nombre: formData.cliente_nombre.trim(),
-        cliente_telefono: formData.cliente_telefono.trim(),
-        cliente_direccion: formData.cliente_direccion.trim(),
-        productos: productosSeleccionados.map(p => ({
-          producto_id: p.producto_id,
-          cantidad: p.cantidad
-        }))
-      };
-
       const response = await fetch('/api/comandas', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(comandaData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tienda_id: tiendaId,
+          ...formData,
+          productos: productosSeleccionados.map((p) => ({
+            producto_id: p.producto_id,
+            cantidad: p.cantidad,
+          })),
+        }),
       });
 
-      const responseData = await response.json();
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error);
 
-      if (response.ok && responseData.success) {
-        onComandaCreated();
-        onClose(); // Cerrar el modal después de crear exitosamente
-      } else {
-        setError(responseData.error || 'Error al crear la comanda');
-      }
-    } catch (error) {
-      console.error('Error al crear comanda:', error);
-      setError('Error al crear la comanda');
+      onComandaCreated();
+      onClose();
+    } catch (error: any) {
+      setMensaje({
+        tipo: 'error',
+        texto: error.message || 'Error al crear la comanda',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Función para manejar el cierre del modal con tecla Escape
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('keydown', handleEscape);
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
-
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-10 mx-auto p-0 border w-full max-w-4xl shadow-lg rounded-md bg-white mb-10">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Nueva Comanda</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-            disabled={loading}
-          >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 text-gray-700">
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-white/80 backdrop-blur-xl rounded-t-3xl p-6 border-b border-gray-200/50 z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl flex items-center justify-center">
+                <Cart className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Nueva Comanda
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Registra los datos del cliente y selecciona productos
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2.5 hover:bg-gray-200/60 rounded-xl transition-all"
+            >
+              <X className="w-5 h-5 text-gray-600 hover:text-red-700" />
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
-            <button
-              onClick={() => setError('')}
-              className="mt-2 text-xs text-red-800 underline"
-            >
-              Cerrar
-            </button>
+        {/* Mensaje */}
+        {mensaje.texto && (
+          <div
+            className={`m-6 p-4 rounded-2xl flex items-center gap-3 ${
+              mensaje.tipo === 'error'
+                ? 'bg-red-50/80 border border-red-200/50 text-red-800'
+                : 'bg-green-50/80 border border-green-200/50 text-green-800'
+            }`}
+          >
+            {mensaje.tipo === 'error' ? (
+              <AlertTriangle className="w-5 h-5" />
+            ) : (
+              <CheckCircle className="w-5 h-5" />
+            )}
+            <span className="text-sm font-medium">{mensaje.texto}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 text-gray-700">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Información del cliente */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-900">Información del Cliente</h4>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre del Cliente *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.cliente_nombre}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_nombre: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  disabled={loading}
-                  placeholder="Ingrese el nombre del cliente"
-                />
-              </div>
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Cliente */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <User className="w-4 h-4" />
+                Nombre del Cliente *
+              </label>
+              <input
+                type="text"
+                value={formData.cliente_nombre}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    cliente_nombre: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3.5 rounded-2xl border border-gray-200/60 bg-white/60 focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                placeholder="Ej: Juan Pérez"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  value={formData.cliente_telefono}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_telefono: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  disabled={loading}
-                  placeholder="Opcional"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Phone className="w-4 h-4" />
+                Teléfono
+              </label>
+              <input
+                type="tel"
+                value={formData.cliente_telefono}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    cliente_telefono: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3.5 rounded-2xl border border-gray-200/60 bg-white/60 focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                placeholder="+56 9 1234 5678"
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Dirección *
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  value={formData.cliente_direccion}
-                  onChange={(e) => setFormData(prev => ({ ...prev, cliente_direccion: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  disabled={loading}
-                  placeholder="Ingrese la dirección completa"
-                />
-              </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <MapPin className="w-4 h-4" />
+                Dirección *
+              </label>
+              <textarea
+                rows={3}
+                value={formData.cliente_direccion}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    cliente_direccion: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-3.5 rounded-2xl border border-gray-200/60 bg-white/60 focus:ring-2 focus:ring-emerald-500/40 outline-none"
+                placeholder="Ej: Av. Siempre Viva 742"
+              />
+            </div>
 
-              {/* Resumen del pedido */}
-              {productosSeleccionados.length > 0 && (
-                <div className="mt-6">
-                  <h5 className="text-sm font-medium text-gray-900 mb-3">Resumen del Pedido</h5>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {productosSeleccionados.map((item) => (
-                        <div key={item.producto_id} className="flex justify-between items-center">
-                          <div className="flex items-center">
-                            <span className="text-sm text-gray-600">
-                              {item.cantidad}x {item.producto.nombre}
+            {/* Resumen */}
+            {productosSeleccionados.length > 0 && (
+              <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-200/60">
+                <h4 className="text-sm font-semibold mb-3">Resumen del Pedido</h4>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {productosSeleccionados.map((item) => (
+                    <div
+                      key={item.producto_id}
+                      className="flex justify-between items-center"
+                    >
+                      <span className="text-sm text-gray-700">
+                        {item.cantidad}x {item.producto.nombre}
+                      </span>
+                      <span className="font-semibold">
+                        ${(item.producto.precio * item.cantidad).toFixed(0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                  <span>Total:</span>
+                  <span>${calcularTotal().toFixed(0)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Productos */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-gray-700">
+              Seleccionar Productos
+            </h4>
+
+            {loadingProductos ? (
+              <p className="text-sm text-gray-500">Cargando productos...</p>
+            ) : productos.length === 0 ? (
+              <p className="text-sm text-gray-500">No hay productos disponibles</p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {productos.map((producto) => {
+                  const seleccionado = productosSeleccionados.find(
+                    (p) => p.producto_id === producto.id
+                  );
+                  return (
+                    <div
+                      key={producto.id}
+                      className="p-4 rounded-2xl border border-gray-200/60 bg-white/60"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h5 className="font-semibold">{producto.nombre}</h5>
+                          {producto.descripcion && (
+                            <p className="text-sm text-gray-600">
+                              {producto.descripcion}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-emerald-600 font-bold">
+                          ${producto.precio.toFixed(0)}
+                        </span>
+                      </div>
+
+                      <div className="mt-3">
+                        {seleccionado ? (
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                actualizarCantidad(
+                                  producto.id,
+                                  seleccionado.cantidad - 1
+                                )
+                              }
+                              className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100"
+                            >
+                              <MinusIcon className="w-4 h-4" />
+                            </button>
+                            <span className="w-8 text-center font-medium">
+                              {seleccionado.cantidad}
                             </span>
                             <button
                               type="button"
-                              onClick={() => eliminarProducto(item.producto_id)}
-                              className="ml-2 text-red-600 hover:text-red-800"
-                              disabled={loading}
+                              onClick={() =>
+                                actualizarCantidad(
+                                  producto.id,
+                                  seleccionado.cantidad + 1
+                                )
+                              }
+                              className="cursor-pointer w-8 h-8 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100"
                             >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
+                              <Plus className="w-4 h-4" />
                             </button>
                           </div>
-                          <span className="text-sm font-medium">
-                            ${(item.producto.precio * item.cantidad).toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-t border-gray-200 pt-2 mt-2">
-                      <div className="flex justify-between items-center">
-                        <span className="font-medium">Total:</span>
-                        <span className="text-lg font-bold">${calcularTotal().toFixed(2)}</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => agregarProducto(producto)}
+                            className="cursor-pointer mt-2 px-4 py-2 rounded-2xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 text-sm font-medium"
+                          >
+                            Agregar
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Selección de productos */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-medium text-gray-900">Seleccionar Productos</h4>
-              
-              {loadingProductos ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                </div>
-              ) : productos.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No hay productos disponibles</p>
-                  <button
-                    type="button"
-                    onClick={loadProductos}
-                    className="mt-2 text-indigo-600 hover:text-indigo-800 text-sm underline"
-                    disabled={loadingProductos}
-                  >
-                    Recargar productos
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {productos.map((producto) => {
-                    const productoSeleccionado = productosSeleccionados.find(p => p.producto_id === producto.id);
-                    return (
-                      <div key={producto.id} className="border border-gray-200 rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1 mr-4">
-                            <h5 className="font-medium text-gray-900">{producto.nombre}</h5>
-                            {producto.descripcion && (
-                              <p className="text-sm text-gray-600 mt-1">{producto.descripcion}</p>
-                            )}
-                          </div>
-                          <span className="text-lg font-bold text-indigo-600 whitespace-nowrap">
-                            ${producto.precio.toFixed(2)}
-                          </span>
-                        </div>
-                        
-                        <div className="flex items-center justify-between">
-                          {productoSeleccionado ? (
-                            <div className="flex items-center space-x-2">
-                              <button
-                                type="button"
-                                onClick={() => actualizarCantidad(producto.id, productoSeleccionado.cantidad - 1)}
-                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                                disabled={loading}
-                              >
-                                -
-                              </button>
-                              <span className="w-8 text-center font-medium">{productoSeleccionado.cantidad}</span>
-                              <button
-                                type="button"
-                                onClick={() => actualizarCantidad(producto.id, productoSeleccionado.cantidad + 1)}
-                                className="inline-flex items-center justify-center w-8 h-8 border border-gray-300 rounded-full text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-                                disabled={loading}
-                              >
-                                +
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => agregarProducto(producto)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 disabled:opacity-50"
-                              disabled={loading}
-                            >
-                              Agregar
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          <div className="flex space-x-3 pt-6 border-t border-gray-200 mt-6">
+          {/* Botones */}
+          <div className="lg:col-span-2 flex gap-3 pt-6 border-t border-gray-200/60">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              disabled={loading}
+              className="flex-1 px-6 py-3.5 border border-gray-300/60 text-gray-700 rounded-2xl hover:bg-gray-100 hover:text-red-700 font-semibold"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading || productosSeleccionados.length === 0}
-              className="flex-1 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creando...
-                </>
-              ) : (
-                'Crear Comanda'
-              )}
+              {loading ? 'Creando...' : 'Crear Comanda'}
             </button>
           </div>
         </form>

@@ -1,3 +1,4 @@
+//historial/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -21,6 +22,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   BoltIcon,
+  CheckCircleIcon,
   NoSymbolIcon
 } from '@heroicons/react/24/solid';
 
@@ -289,6 +291,8 @@ export default function HistorialPage() {
         return estado;
     }
   };
+
+ 
 
   const toggleProducto = (productoId: number) => {
     const productosActuales = filtros.productos || [];
@@ -795,16 +799,29 @@ export default function HistorialPage() {
 
                         {/* Comentarios/Problemas */}
                         {comanda.comentario_problema && (
-                          <div className="mt-3 p-3 bg-red-50/50 rounded-lg border border-red-200/50">
-                            <div className="flex items-start space-x-2">
-                              <XCircleIcon className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                              <div>
-                                <p className="text-sm font-medium text-red-800">Comentario:</p>
-                                <p className="text-sm text-red-700">{comanda.comentario_problema}</p>
+                          comanda.comentario_problema.trim() === "Entregado en tienda" ? (
+                            <div className="mt-3 p-3 bg-emerald-50/50 rounded-lg border border-emerald-200/50">
+                              <div className="flex items-start space-x-2">
+                                <CheckCircleIcon className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-emerald-800">Comentario:</p>
+                                  <p className="text-sm text-emerald-700">{comanda.comentario_problema}</p>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          ) : (
+                            <div className="mt-3 p-3 bg-red-50/50 rounded-lg border border-red-200/50">
+                              <div className="flex items-start space-x-2">
+                                <XCircleIcon className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                                <div>
+                                  <p className="text-sm font-medium text-red-800">Comentario:</p>
+                                  <p className="text-sm text-red-700">{comanda.comentario_problema}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )
                         )}
+
                       </div>
                     </div>
 

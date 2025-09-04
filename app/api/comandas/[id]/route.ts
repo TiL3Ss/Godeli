@@ -113,9 +113,11 @@ export async function PATCH(
 
     // Validar transiciones de estado permitidas
     const estadoActual = comanda.estado;
+    
+    // NUEVA LÓGICA: Permitir que las tiendas completen comandas desde en_proceso
     const transicionesPermitidas = {
-      'en_proceso': ['activa', 'cancelada'], // desde en_proceso puede ir a activa (cuando se asigna repartidor) o cancelada
-      'activa': ['completada', 'cancelada'], // desde activa puede ir a completada o cancelada
+      'en_proceso': ['activa', 'completada', 'cancelada'], // MODIFICADO: Agregado 'completada'
+      'activa': ['completada', 'cancelada'],
       'completada': [], // estado final
       'cancelada': [] // estado final
     };
@@ -137,11 +139,16 @@ export async function PATCH(
     
     const localDateTime = getLocalDateTime();
 
-    // Construir query de actualización - CORREGIDO
+    // Construir query de actualización
     let sql = 'UPDATE comandas SET estado = ?, updated_at = ?';
     const args = [estado, localDateTime];
 
-    if (comentario) {
+    // NUEVA LÓGICA: Si es una tienda completando desde en_proceso, agregar comentario automático
+    if (session.user.tipo === 'tienda' && estadoActual === 'en_proceso' && estado === 'completada') {
+      sql += ', comentario_problema = ?';
+      args.push('Entregado en tienda');
+    } else if (comentario) {
+      // Usar comentario proporcionado si existe
       sql += ', comentario_problema = ?';
       args.push(comentario);
     }
