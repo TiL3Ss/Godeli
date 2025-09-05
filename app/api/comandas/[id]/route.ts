@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 import { getTursoClient } from '../../../../lib/turso';
+import { decryptId } from '../../../../lib/encryption';
 
 // Función para obtener la fecha y hora local en formato ISO UTC-3
 function getLocalDateTime() {
@@ -14,7 +15,7 @@ function getLocalDateTime() {
 // Actualizar estado de comanda
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -25,9 +26,19 @@ export async function PATCH(
       );
     }
 
-    // Await params antes de usar sus propiedades
-    const { id } = await params;
-    const comandaId = id;
+    const { id } = await context.params;
+    
+    // Desencriptar el ID
+    let comandaId: number;
+    try {
+      comandaId = decryptId(id);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: 'ID de comanda inválido' }, 
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { estado, comentario } = body;
 
@@ -175,7 +186,7 @@ export async function PATCH(
 // Obtener detalles de una comanda específica
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -187,8 +198,19 @@ export async function GET(
     }
 
     // Await params antes de usar sus propiedades
-    const { id } = await params;
-    const comandaId = id;
+    const { id } = await context.params;
+    
+    // Desencriptar el ID
+    let comandaId: number;
+    try {
+      comandaId = decryptId(id);
+    } catch (error) {
+      return NextResponse.json(
+        { success: false, error: 'ID de comanda inválido' }, 
+        { status: 400 }
+      );
+    }
+
     const client = getTursoClient();
 
     // Obtener comanda con detalles del repartidor y tienda

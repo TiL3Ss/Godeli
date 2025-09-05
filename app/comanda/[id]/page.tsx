@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import LoadingImage from '../../components/LoadingImage';
+import { decryptId } from "../../../lib/encryption";
+
 import {
   ArrowRightEndOnRectangleIcon,
   ArrowLeftIcon,
@@ -61,6 +63,8 @@ interface ComandaDetalle {
   }>;
 }
 
+
+
 export default function ComandaDetailPage() {
   const { data: session, status } = useSession();
   const [comanda, setComanda] = useState<ComandaDetalle | null>(null);
@@ -68,52 +72,69 @@ export default function ComandaDetailPage() {
   const [error, setError] = useState<string>('');
   const [printing, setPrinting] = useState(false);
   const router = useRouter();
+  //
   const params = useParams();
-  const comandaId = params.id;
+  let decryptedId: number | null = null;
+  try {
+    decryptedId = decryptId(params.id as string);
+    } catch (e) {
+      if (typeof window !== "undefined") {
+      router.push('/');
+    }
+    
+  }
 
   useEffect(() => {
     if (status === 'loading') return;
 
-    if (status === 'unauthenticated') {
-      router.push('/');
-      return;
-    }
+      if (status === 'unauthenticated') {
+        router.push('/');
+        return;
+      }
 
-    if (status === 'authenticated' && comandaId) {
-      loadComandaDetails();
-    }
-  }, [status, comandaId, router]);
+      if (status === 'authenticated' && decryptedId) {
+        loadComandaDetails();
+      }
+  }, [status, decryptedId, router]);
+
 
   const loadComandaDetails = async () => {
-    try {
-      setLoading(true);
-      setError('');
+  if (!decryptedId) {
+    setError("ID de comanda inválido");
+    setLoading(false);
+    return;
+  }
 
-      const response = await fetch(`/api/comandas/${comandaId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+  try {
+    setLoading(true);
+    setError('');
 
-      const data = await response.json();
+    const response = await fetch(`/api/comandas/${params.id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Error al obtener la comanda');
-      }
+    const data = await response.json();
 
-      if (data.success) {
-        setComanda(data.data);
-      } else {
-        throw new Error(data.error || 'Error al obtener la comanda');
-      }
-    } catch (error) {
-      console.error('Error loading comanda:', error);
-      setError('Error al cargar los detalles de la comanda');
-    } finally {
-      setLoading(false);
+    if (!response.ok) {
+      throw new Error(data.error || 'Error al obtener la comanda');
     }
+
+    if (data.success) {
+      setComanda(data.data);
+    } else {
+      throw new Error(data.error || 'Error al obtener la comanda');
+    }
+  } catch (error) {
+    console.error('Error loading comanda:', error);
+    setError('Error al cargar los detalles de la comanda');
+  } finally {
+    setLoading(false);
+  }
   };
+ 
 
   const handleLogout = async () => {
     try {

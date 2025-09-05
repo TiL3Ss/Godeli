@@ -73,7 +73,7 @@ export default function SelectTiendaPage() {
     }
   }, [status]);
 
-
+  
   const loadTiendas = async () => {
     try {
       setLoading(true);

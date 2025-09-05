@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import LoadingImage from '../components/LoadingImage';
+import { encryptId } from '../../lib/encryption'; 
 import {
   ArrowRightEndOnRectangleIcon,
   XCircleIcon,
@@ -65,6 +66,8 @@ interface FiltrosHistorial {
   productos?: number[];
 }
 
+
+
 export default function HistorialPage() {
   const { data: session, status } = useSession();
   const [comandas, setComandas] = useState<Comanda[]>([]);
@@ -78,6 +81,21 @@ export default function HistorialPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [expandedComandas, setExpandedComandas] = useState<Set<number>>(new Set());
   const router = useRouter();
+
+  // Función para obtener ID encriptado de forma segura
+  const getEncryptedId = (id: number): string => {
+    try {
+      return encryptId(id);
+    } catch (error) {
+      console.error('Error encriptando ID:', error);
+      return id.toString(); // Fallback al ID original si hay error
+    }
+  };
+
+  const goToComanda = (id: number) => {
+  const encrypted = getEncryptedId(id);
+  router.push(`/comanda/${encrypted}`);
+  };
 
   // Reloj en tiempo real
   useEffect(() => {
@@ -291,8 +309,6 @@ export default function HistorialPage() {
         return estado;
     }
   };
-
- 
 
   const toggleProducto = (productoId: number) => {
     const productosActuales = filtros.productos || [];
@@ -669,186 +685,173 @@ export default function HistorialPage() {
         )}
 
         {/* Lista de Comandas */}
-        <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl border border-white/30 overflow-hidden">
-          {comandas.length === 0 ? (
-            <div className="p-12 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <DocumentTextIcon className="w-10 h-10 text-slate-500" />
+        <div className="bg-gradient-to-br from-white/80 via-white/70 to-slate-50/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/40 overflow-hidden">
+  {comandas.length === 0 ? (
+    <div className="p-6 sm:p-12 text-center">
+      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-3xl flex items-center justify-center mx-auto mb-4 sm:mb-6 shadow-lg">
+        <DocumentTextIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-500" />
+      </div>
+      <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2">No hay comandas</h3>
+      <p className="text-slate-600 max-w-md mx-auto text-sm leading-relaxed">
+        {filtrosAplicados 
+          ? 'No se encontraron comandas con los filtros aplicados.'
+          : 'No hay comandas en el historial.'
+        }
+      </p>
+      {filtrosAplicados && (
+        <button
+          onClick={limpiarFiltros}
+          className="mt-6 px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+        >
+          Limpiar Filtros
+        </button>
+      )}
+    </div>
+  ) : (
+    <div className="divide-y divide-slate-200/30">
+      {comandas.map((comanda, index) => (
+        <div key={comanda.id} className="p-4 hover:bg-gradient-to-r hover:from-white/60 hover:to-slate-50/40 transition-all duration-300 group">
+          
+          {/* Header compacto */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
+                <span className="text-xs font-bold text-white">#{comanda.id}</span>
               </div>
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">No hay comandas</h3>
-              <p className="text-slate-600 max-w-md mx-auto">
-                {filtrosAplicados 
-                  ? 'No se encontraron comandas con los filtros aplicados. Intenta modificar los criterios de búsqueda.'
-                  : 'No hay comandas en el historial para mostrar.'
-                }
-              </p>
-              {filtrosAplicados && (
-                <button
-                  onClick={limpiarFiltros}
-                  className="mt-6 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105"
-                >
-                  Limpiar Filtros
-                </button>
-              )}
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm sm:text-base">{comanda.cliente_nombre}</h3>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getEstadoColor(comanda.estado)}`}>
+                  {getEstadoText(comanda.estado)}
+                </span>
+              </div>
             </div>
-          ) : (
-            <div className="divide-y divide-slate-200/50">
-              {comandas.map((comanda, index) => (
-                <div key={comanda.id} className="p-6 hover:bg-white/50 transition-all duration-300">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4">
-                      <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                        <span className="text-sm font-bold text-white">#{comanda.id}</span>
-                      </div>
+            
+            <div className="flex items-center space-x-3">
+              <div className="text-right">
+                <div className="font-bold text-slate-900 text-lg">${comanda.total.toFixed(2)}</div>
+                <div className="text-xs text-slate-500">{comanda.productos?.length || 0} items</div>
+              </div>
+              <button
+                onClick={() => goToComanda(comanda.id)}
+                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-300"
+                title="Ver detalles"
+              >
+                <EyeIcon className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Info rápida en pills */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-100/70 rounded-lg text-xs text-slate-600">
+              <ClockIcon className="w-3.5 h-3.5" />
+              <span>{formatDate(comanda.created_at)}</span>
+            </div>
+            
+            {comanda.cliente_telefono && (
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-100/70 rounded-lg text-xs text-slate-600">
+                <PhoneIcon className="w-3.5 h-3.5" />
+                <span>{comanda.cliente_telefono}</span>
+              </div>
+            )}
+            
+            {comanda.repartidor?.nombre && (
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-blue-100/70 rounded-lg text-xs text-blue-700">
+                <TruckIcon className="w-3.5 h-3.5" />
+                <span>{comanda.repartidor.nombre}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Dirección separada si es muy larga */}
+          {comanda.cliente_direccion && (
+            <div className="flex items-start space-x-2 mb-3 p-2.5 bg-amber-50/50 rounded-lg">
+              <MapPinIcon className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <span className="text-xs text-amber-700 leading-relaxed">{comanda.cliente_direccion}</span>
+            </div>
+          )}
+
+          {/* Productos compacto */}
+          {comanda.productos && comanda.productos.length > 0 && (
+            <div className="bg-gradient-to-r from-slate-50/80 to-white/80 rounded-xl border border-slate-100/50 overflow-hidden">
+              <div className="flex items-center justify-between p-3 border-b border-slate-100/50">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                  <span className="text-sm font-semibold text-slate-700">
+                    {comanda.productos.length} Productos
+                  </span>
+                </div>
+                <button
+                  onClick={() => toggleComandaExpansion(comanda.id)}
+                  className="flex items-center space-x-1 text-xs text-indigo-600 hover:text-indigo-800 transition-colors duration-300 font-medium hover:bg-indigo-50 px-2 py-1 rounded-lg"
+                >
+                  <span>{expandedComandas.has(comanda.id) ? 'Ocultar' : 'Detalles'}</span>
+                  {expandedComandas.has(comanda.id) ? (
+                    <ChevronUpIcon className="w-4 h-4" />
+                  ) : (
+                    <ChevronDownIcon className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+              
+              {expandedComandas.has(comanda.id) ? (
+                <div className="p-3 space-y-2">
+                  {comanda.productos.map((item) => (
+                    <div key={item.id} className="flex justify-between items-center p-2 bg-white/80 rounded-lg">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold text-slate-900">{comanda.cliente_nombre}</h3>
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getEstadoColor(comanda.estado)}`}>
-                            {getEstadoText(comanda.estado)}
-                          </span>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-600">
-                          <div className="flex items-center space-x-2">
-                            <ClockIcon className="w-4 h-4 text-slate-400" />
-                            <span>{formatDate(comanda.created_at)}</span>
-                          </div>
-                          
-                          {comanda.cliente_telefono && (
-                            <div className="flex items-center space-x-2">
-                              <PhoneIcon className="w-4 h-4 text-slate-400" />
-                              <span>{comanda.cliente_telefono}</span>
-                            </div>
-                          )}
-                          
-                          {comanda.cliente_direccion && (
-                            <div className="flex items-center space-x-2">
-                              <MapPinIcon className="w-4 h-4 text-slate-400" />
-                              <span className="truncate">{comanda.cliente_direccion}</span>
-                            </div>
-                          )}
-                          
-                          {comanda.repartidor?.nombre && (
-                            <div className="flex items-center space-x-2">
-                              <TruckIcon className="w-4 h-4 text-slate-400" />
-                              <span>Repartidor: {comanda.repartidor.nombre}</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Productos resumen */}
-                        {comanda.productos && comanda.productos.length > 0 && (
-                          <div className="mt-3 p-3 bg-slate-50/50 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-slate-700">
-                                Productos ({comanda.productos.length})
-                              </span>
-                              <button
-                                onClick={() => toggleComandaExpansion(comanda.id)}
-                                className="flex items-center space-x-1 text-xs text-indigo-600 hover:text-indigo-800 transition-colors duration-300"
-                              >
-                                <span>{expandedComandas.has(comanda.id) ? 'Ocultar' : 'Ver detalles'}</span>
-                                {expandedComandas.has(comanda.id) ? (
-                                  <ChevronUpIcon className="w-4 h-4" />
-                                ) : (
-                                  <ChevronDownIcon className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                            
-                            {expandedComandas.has(comanda.id) ? (
-                              <div className="space-y-2">
-                                {comanda.productos.map((item) => (
-                                  <div key={item.id} className="flex justify-between items-center text-sm">
-                                    <div className="flex-1">
-                                      <span className="text-slate-900 font-medium">
-                                        {item.producto.nombre}
-                                      </span>
-                                      <span className="text-slate-500 ml-2">
-                                        x{item.cantidad}
-                                      </span>
-                                    </div>
-                                    <div className="text-right">
-                                      <div className="text-slate-900 font-medium">
-                                        ${(item.precio_unitario * item.cantidad).toFixed(2)}
-                                      </div>
-                                      <div className="text-xs text-slate-500">
-                                        ${item.precio_unitario.toFixed(2)} c/u
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-sm text-slate-600">
-                                {comanda.productos.slice(0, 2).map((item, idx) => (
-                                  <span key={item.id}>
-                                    {item.producto.nombre} (x{item.cantidad})
-                                    {idx < Math.min(comanda.productos!.length, 2) - 1 ? ', ' : ''}
-                                  </span>
-                                ))}
-                                {comanda.productos.length > 2 && (
-                                  <span className="text-indigo-600 font-medium">
-                                    {' '}y {comanda.productos.length - 2} más...
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Comentarios/Problemas */}
-                        {comanda.comentario_problema && (
-                          comanda.comentario_problema.trim() === "Entregado en tienda" ? (
-                            <div className="mt-3 p-3 bg-emerald-50/50 rounded-lg border border-emerald-200/50">
-                              <div className="flex items-start space-x-2">
-                                <CheckCircleIcon className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="text-sm font-medium text-emerald-800">Comentario:</p>
-                                  <p className="text-sm text-emerald-700">{comanda.comentario_problema}</p>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="mt-3 p-3 bg-red-50/50 rounded-lg border border-red-200/50">
-                              <div className="flex items-start space-x-2">
-                                <XCircleIcon className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
-                                <div>
-                                  <p className="text-sm font-medium text-red-800">Comentario:</p>
-                                  <p className="text-sm text-red-700">{comanda.comentario_problema}</p>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        )}
-
+                        <div className="font-medium text-slate-900 text-sm">{item.producto.nombre}</div>
+                        <div className="text-xs text-slate-500">x{item.cantidad} • ${item.precio_unitario.toFixed(2)} c/u</div>
+                      </div>
+                      <div className="font-bold text-slate-900 text-sm">
+                        ${(item.precio_unitario * item.cantidad).toFixed(2)}
                       </div>
                     </div>
-
-                    {/* Precio y acciones */}
-                    <div className="flex items-start space-x-4">
-                      <div className="text-right">
-                        <p className="text-xl font-bold text-slate-900">
-                          ${comanda.total.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {comanda.productos?.length || 0} productos
-                        </p>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3">
+                  <div className="text-sm text-slate-600 space-y-1">
+                    {comanda.productos.slice(0, 2).map((item, idx) => (
+                      <div key={item.id} className="flex justify-between">
+                        <span className="truncate mr-2">{item.producto.nombre} <span className="text-indigo-600">x{item.cantidad}</span></span>
+                        <span className="font-medium">${(item.precio_unitario * item.cantidad).toFixed(2)}</span>
                       </div>
-                      <button
-                        onClick={() => router.push(`/comanda/${comanda.id}`)}
-                        className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all duration-300"
-                        title="Ver detalles"
-                      >
-                        <EyeIcon className="w-5 h-5" />
-                      </button>
-                    </div>
+                    ))}
+                    {comanda.productos.length > 2 && (
+                      <div className="text-center text-indigo-600 font-medium text-xs pt-1">
+                        +{comanda.productos.length - 2} productos más
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+              )}
+            </div>
+          )}
+
+          {/* Comentarios compactos */}
+          {comanda.comentario_problema && (
+            <div className={`mt-3 p-3 rounded-xl flex items-center space-x-2 ${
+              comanda.comentario_problema.trim() === "Entregado en tienda" 
+                ? "bg-emerald-50/80 border border-emerald-200/50" 
+                : "bg-red-50/80 border border-red-200/50"
+            }`}>
+              {comanda.comentario_problema.trim() === "Entregado en tienda" ? (
+                <CheckCircleIcon className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+              ) : (
+                <XCircleIcon className="w-4 h-4 text-red-500 flex-shrink-0" />
+              )}
+              <span className={`text-sm ${
+                comanda.comentario_problema.trim() === "Entregado en tienda" ? "text-emerald-700" : "text-red-700"
+              }`}>
+                {comanda.comentario_problema}
+              </span>
             </div>
           )}
         </div>
+      ))}
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
