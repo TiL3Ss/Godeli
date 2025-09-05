@@ -1,7 +1,7 @@
 // lib/encryption.ts
 import crypto from "crypto";
 
-const ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ID_ENCRYPTION_KEY!;
+const ENCRYPTION_KEY = process.env.ID_ENCRYPTION_KEY!;
 const ALGORITHM = "aes-256-cbc";
 
 const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, "0").slice(0, 32));
