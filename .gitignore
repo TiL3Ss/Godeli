@@ -19,6 +19,7 @@
 
 # production
 /build
+godeli/lib/encryption.ts
 
 # misc
 .DS_Store
